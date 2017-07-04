@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="720c515a-b82c-4475-8fdd-fef4d1d3a5b4" name="koyo" url="http://192.168.56.101">
+        <fileTransfer host="192.168.56.101" port="22" rootFolder="/home/xduser" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
