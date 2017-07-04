@@ -105,12 +105,13 @@ int main(int argc, char ** argv) {
 
     IMat * TgrayM = ICreateMat(Tgray->height, Tgray->width, U8C1);
     Ipl2IMat(Tgray, TgrayM);
-    saveResult(*TgrayM, "Tgray.txt");
+//    saveResult(*TgrayM, "result/Tgray.txt");
 
     IMat * Tlevel4M = ICreateMat(Tlevel4->height, Tlevel4->width, U8C1);
     Ipl2IMat(Tlevel4, Tlevel4M);
-    saveResult(*Tlevel4M, "Tlevel4.txt");
+//    saveResult(*Tlevel4M, "result/Tlevel4.txt");
 
+#if 0
     IMat * Tlevel3M = ICreateMat(Tlevel3->height, Tlevel3->width, U8C1);
     Ipl2IMat(Tlevel3, Tlevel3M);
     saveResult(*Tlevel3M, "Tlevel3.txt");
@@ -118,6 +119,7 @@ int main(int argc, char ** argv) {
     IMat * Tlevel2M = ICreateMat(Tlevel2->height, Tlevel2->width, U8C1);
     Ipl2IMat(Tlevel2, Tlevel2M);
     saveResult(*Tlevel2M, "Tlevel2.txt");
+#endif
 
     IplImage *srcImage;
     srcImage = cvCreateImage(cvSize(image->width, image->height), IPL_DEPTH_8U, 1);
@@ -129,23 +131,23 @@ int main(int argc, char ** argv) {
 
     IMat *tg= ICreateMat(Tgray->height, Tgray->width, U8C1);
     Ipl2IMat(Tgray, tg);
-    std::cout << "tg: " << Tgray->width << " " << Tgray->height << std::endl;
+//    std::cout << "tg: " << Tgray->width << " " << Tgray->height << std::endl;
 
     IMat *t4= ICreateMat(Tlevel4->height, Tlevel4->width, U8C1);
     Ipl2IMat(Tlevel4, t4);
-    std::cout << "t4: " << Tlevel4->width << " " << Tlevel4->height << std::endl;
+//    std::cout << "t4: " << Tlevel4->width << " " << Tlevel4->height << std::endl;
 
     IMat *t3= ICreateMat(Tlevel3->height, Tlevel3->width, U8C1);
     Ipl2IMat(Tlevel3, t3);
-    std::cout << "t3: " << Tlevel3->width << " " << Tlevel3->height << std::endl;
+//    std::cout << "t3: " << Tlevel3->width << " " << Tlevel3->height << std::endl;
 
     IMat *t2= ICreateMat(Tlevel2->height, Tlevel2->width, U8C1);
     Ipl2IMat(Tlevel2, t2);
-    std::cout << "t2: " << Tlevel2->width << " " << Tlevel2->height << std::endl;
+//    std::cout << "t2: " << Tlevel2->width << " " << Tlevel2->height << std::endl;
 
     IMat *t1= ICreateMat(Tlevel1->height, Tlevel1->width, U8C1);
     Ipl2IMat(Tlevel1, t1);
-    std::cout << "t1: " << Tlevel1->width << " " << Tlevel1->height << std::endl;
+//    std::cout << "t1: " << Tlevel1->width << " " << Tlevel1->height << std::endl;
 
 //    tg = ICreateMat(76, 144, U8C1);
 //    resumeIMat("images/testImages/Tgray.txt", tg);
@@ -280,39 +282,41 @@ int main(int argc, char ** argv) {
 
     IMat * SgM = ICreateMat(Sg->height, Sg->width, U8C1);
     Ipl2IMat(Sg, SgM);
-    saveResult(*SgM, "Sg.txt");
+//    saveResult(*SgM, "result/Sg.txt");
 
     IMat * S4M = ICreateMat(S4->height, S4->width, U8C1);
     Ipl2IMat(S4, S4M);
-    saveResult(*S4M, "S4.txt");
+//    saveResult(*S4M, "result/S4.txt");
 
+#if 0
     IMat * S3M = ICreateMat(S3->height, S3->width, U8C1);
     Ipl2IMat(S3, S3M);
-    saveResult(*S3M, "S3.txt");
+    saveResult(*S3M, "result/S3.txt");
 
     IMat * S2M = ICreateMat(S2->height, S2->width, U8C1);
     Ipl2IMat(S2, S2M);
     saveResult(*S2M, "S2.txt");
+#endif
 
     IMat *SMg = ICreateMat(Sg->height, Sg->width, U8C1);
     Ipl2IMat(Sg, SMg);
-    std::cout << "Sg: " << Sg->width << " " << Sg->height << std::endl;
+//    std::cout << "Sg: " << Sg->width << " " << Sg->height << std::endl;
 
     IMat *SM4 = ICreateMat(S4->height, S4->width, U8C1);
     Ipl2IMat(S4, SM4);
-    std::cout << "S4: " << S4->width << " " << S4->height << std::endl;
+//    std::cout << "S4: " << S4->width << " " << S4->height << std::endl;
 
     IMat *SM3 = ICreateMat(S3->height, S3->width, U8C1);
     Ipl2IMat(S3, SM3);
-    std::cout << "S3: " << S3->width << " " << S3->height << std::endl;
+//    std::cout << "S3: " << S3->width << " " << S3->height << std::endl;
 
     IMat *SM2 = ICreateMat(S2->height, S2->width, U8C1);
     Ipl2IMat(S2, SM2);
-    std::cout << "S2: " << S2->width << " " << S2->height << std::endl;
+//    std::cout << "S2: " << S2->width << " " << S2->height << std::endl;
 
     IMat *SM1 = ICreateMat(S1->height, S1->width, U8C1);
     Ipl2IMat(S1, SM1);
-    std::cout << "S1: " << S1->width << " " << S1->height << std::endl;
+//    std::cout << "S1: " << S1->width << " " << S1->height << std::endl;
     IMat *mats[5] = {SM1, SM2, SM3, SM4, SMg};
 
 
