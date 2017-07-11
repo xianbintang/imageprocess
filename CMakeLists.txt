@@ -45,11 +45,7 @@ target_link_libraries(FeaturesMatch ${OpenCV_LIBS})
 add_executable(RotateImage1 src/RotateImage.cpp)
 target_link_libraries(RotateImage1 ${OpenCV_LIBS})
 
-add_executable(OnBoard boardCode/TemplateMatch.c boardCode/TemplateMatchTest.c boardCode/RotateImage.cpp)
-target_link_libraries(OnBoard ${OpenCV_LIBS})
 
-add_executable(rotateTest boardCode/RotateImage.cpp boardCode/IMatImpl.cpp boardCode/RotateTest.cpp)
-target_link_libraries(rotateTest ${OpenCV_LIBS})
 
 add_executable(TemplateMatch src/RotateImage.cpp src/TemplateMatchTest.cpp src/TemplateMatch.cpp src/TemplateMatchTest.cpp src/IMatImpl.cpp src/sobel.cpp)
 target_link_libraries(TemplateMatch ${OpenCV_LIBS})
@@ -68,3 +64,6 @@ target_link_libraries(fastLocalization ${OpenCV_LIBS})
 
 add_executable(testTemplateMatch test/testTemplateMatch.cpp)
 target_link_libraries(testTemplateMatch ${OpenCV_LIBS})
+
+add_executable(colorDetection src/color_detection/color_detection.cpp)
+target_link_libraries(colorDetection ${OpenCV_LIBS})
