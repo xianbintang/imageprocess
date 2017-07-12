@@ -31,7 +31,7 @@ int main( int argc, char** argv )
 
     while (true)
     {
-        Mat imgOriginal = imread("images/green.jpg", 1);
+        Mat imgOriginal = imread("images/rainbow.jpg", 1);
 
 
         Mat imgHSV;
