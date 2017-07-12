@@ -315,7 +315,7 @@ void ReleaseDoubleMatrix(double ***matrix,int size)
 
 
 
-double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,double minScore,double greediness,IPoint *resultPoint,const double degree, double *resultDegree)
+double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,double minScore,double greediness,IPoint *resultPoint,const double degree, double *resultDegree, Rect region)
 {
 
     TimeTracker t1;
@@ -368,7 +368,17 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
     HI_Sobel(src, Sdx, Sdy);		//gradient in X direction
 //    resumeIMatf("gxgx.txt", Sdx);
 //    resumeIMatf("gygy.txt", Sdy);
-
+#if 0
+    if (src->height == 120) {
+        resumeIMatf("result/normsdx120.txt", Sdx);
+        resumeIMatf("result/normsdy120.txt", Sdy);
+        std::cout << "hehe" << std::endl;
+    } else if (src->height == 240) {
+        resumeIMatf("result/normsdx240.txt", Sdx);
+        resumeIMatf("result/normsdy240.txt", Sdy);
+        std::cout << "hehe" << std::endl;
+    }
+#endif
     t1.start();
     for (i = 0; i < Ssize.height; i++) {
         _Sdx = (short *) (Sdx->fptr + Sdx->step * (i));
@@ -408,6 +418,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
 
 //    std::ofstream fout("counts.txt");
     bool flag = false;
+
     for (dg = 0; dg < 60; dg += 1) {
         int count = 0;
         TimeTracker tt;
@@ -419,9 +430,9 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
         double normGreediness =
                 ((1 - greediness * minScore) / (1 - greediness)) / tpl->noOfCordinates; // precompute greedniness
 
-        for (i = 0; i < Ssize.height; i += 4) {
+        for (i = region.y; i < region.y + region.height; i += 2) {
 
-            for (j = 0; j < Ssize.width; j += 4) {
+            for (j = region.x; j < region.x + region.width; j += 2) {
                 partialSum = 0; // initilize partialSum measure
                 for (m = 0; m < tpl->noOfCordinates; m += 4) {
                     curX = i + tpl->cordinates[m].x;    // template X coordinate
@@ -429,7 +440,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
                     iTx = tpl->edgeDerivativeX[m];    // template X derivative
                     iTy = tpl->edgeDerivativeY[m];    // template Y derivative
 
-                    if (curX < 0 || curY < 0 || curX > Ssize.height - 1 || curY > Ssize.width - 1)
+                    if (curX < region.x || curY < region.y || curX > region.x + region.width - 1 || curY > region.y + region.height - 1)
                         continue;
 
                     _Sdx = (short *) (Sdx->fptr + Sdx->step * (curX));
@@ -490,7 +501,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
     return resultScore;
 }
 
-double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int angle,  const IMat * srcarr,double minScore,double greediness,IPoint *resultPoint,const double degree, double *resultDegree)
+double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int angle,  const IMat * srcarr,double minScore,double greediness,IPoint *resultPoint,const double degree, double *resultDegree, Rect region)
 {
 
     double resultScore = 0 ;
@@ -545,7 +556,15 @@ double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int
 
 //    saveResultf(*Sdx, "Sdx.txt");
 //    saveResultf(*Sdy, "Sdy.txt");
-
+#if 0
+    if (src->height == 120) {
+        resumeIMatf("result/normsdx120.txt", Sdx);
+        resumeIMatf("result/normsdy120.txt", Sdy);
+    } else if (src->height == 240) {
+        resumeIMatf("result/normsdx240.txt", Sdx);
+        resumeIMatf("result/normsdy240.txt", Sdy);
+    }
+#endif
 //    timeTracker.start();
     for (i = 0; i < Ssize.height; i++) {
         _Sdx = (short *) (Sdx->fptr + Sdx->step * (i));
@@ -657,13 +676,23 @@ void FindTemplateInPyramid(TemplateMatch tpls[][60], IMat *images[], IPoint *pos
     total.start();
     IPoint point, where;
 
+    Rect region4;
+    region4.x = 50;
+    region4.y = 90;
+    region4.width = 160;
+    region4.height = 100;
+    Rect region3;
+    region3.x = 25;
+    region3.y = 45;
+    region3.width = 80;
+    region3.height = 50;
     double degree;
-    double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.95, 0.999995, &point, 30, &degree);
+    double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.95, 0.999995, &point, 30, &degree, region3);
 
     tt.stop();
 
-//    std::cout <<"pyr level 3" << " found at degree: " << degree << " Points: (" << point.x << "," << point.y << ")" << " score: " << score
-//              << " Time used: " << tt.duration() << std::endl;
+    std::cout <<"pyr level 3" << " found at degree: " << degree << " Points: (" << point.x << "," << point.y << ")" << " score: " << score
+              << " Time used: " << tt.duration() << std::endl;
 //    where.x = point.x * 2;
 //    where.y = point.y * 2;
     double angle = degree;
@@ -680,7 +709,7 @@ void FindTemplateInPyramid(TemplateMatch tpls[][60], IMat *images[], IPoint *pos
     angle = degree;
 
     tt.start();
-    score = FindGeoMatchModelRotateTplInRange(tpls[4],where, degree, images[4], 0.95, 0.999995, &point, 30, &degree);
+    score = FindGeoMatchModelRotateTplInRange(tpls[4],where, degree, images[4], 0.95, 0.999995, &point, 30, &degree, region4);
     tt.stop();
     std::cout << "pyr level gray "<< " found at degree: " << degree << " Points: (" << point.x << "," << point.y << ")" << " score: " << score
               << " Time used: " << tt.duration() << std::endl;

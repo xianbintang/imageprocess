@@ -105,11 +105,11 @@ int main(int argc, char ** argv) {
 
     IMat * TgrayM = ICreateMat(Tgray->height, Tgray->width, U8C1);
     Ipl2IMat(Tgray, TgrayM);
-//    saveResult(*TgrayM, "result/Tgray.txt");
+    saveResult(*TgrayM, "result/Tgray.txt");
 
     IMat * Tlevel4M = ICreateMat(Tlevel4->height, Tlevel4->width, U8C1);
     Ipl2IMat(Tlevel4, Tlevel4M);
-//    saveResult(*Tlevel4M, "result/Tlevel4.txt");
+    saveResult(*Tlevel4M, "result/Tlevel4.txt");
 
 #if 0
     IMat * Tlevel3M = ICreateMat(Tlevel3->height, Tlevel3->width, U8C1);
@@ -197,6 +197,7 @@ int main(int argc, char ** argv) {
         RotateGrayImage(*t4, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
         CreateGeoMatchModel(&tpls[3][i], matDst, 30, 150, rect);
+        std::cout << tpls[3][i].noOfCordinates << std::endl;
     }
     std::cout << tpls[3][0].noOfCordinates <<std::endl;
     char *filenames1[5] = {
@@ -282,11 +283,11 @@ int main(int argc, char ** argv) {
 
     IMat * SgM = ICreateMat(Sg->height, Sg->width, U8C1);
     Ipl2IMat(Sg, SgM);
-//    saveResult(*SgM, "result/Sg.txt");
+    saveResult(*SgM, "result/Sg.txt");
 
     IMat * S4M = ICreateMat(S4->height, S4->width, U8C1);
     Ipl2IMat(S4, S4M);
-//    saveResult(*S4M, "result/S4.txt");
+    saveResult(*S4M, "result/S4.txt");
 
 #if 0
     IMat * S3M = ICreateMat(S3->height, S3->width, U8C1);
@@ -325,7 +326,7 @@ int main(int argc, char ** argv) {
     FindTemplateInPyramid(tpls, mats, &here, &dg);
 
     DrawContours(Sg, here,tpls[4][dg], CvScalar(255,255,255), 1);
-    cvNamedWindow("tpl", 1);
+//    cvNamedWindow("tpl", 1);
     cvShowImage("hehe", Sg);
     cvWaitKey(-1);
 

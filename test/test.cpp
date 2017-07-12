@@ -50,6 +50,26 @@ void displayTextImagef(const char *path, int width, int height)
 }
 
 
+void displayTextImageS8(const char *path, int width, int height)
+{
+    IplImage *img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8S, 1);
+    memset(img->imageData, 0, sizeof(char) * width * height);
+    std::ifstream fin(path);
+    int num;
+    for (int i = 0; i < height; ++i) {
+//        unsigned char * prow = (unsigned char *)(img->imageData + i * img->widthStep);
+        signed char* prow = (signed char*)(img->imageData + i * img->widthStep);
+        for (int j = 0; j < width; ++j) {
+            fin >> num;
+//            std::cout << num << std::endl;
+            prow[j] = num;
+        }
+    }
+    cvShowImage("img", img);
+//    cvSaveImage("SearchArray_8U.bmp", img);
+    cvWaitKey();
+}
+
 
 
 void Text2HIImage(char *path, int width, int height) {
@@ -75,7 +95,9 @@ int main(int argc, char ** argv)
 //    Text2HIImage("templateArray.txt", 144, 76);
     if (atoi(argv[4]) == 0)
         displayTextImage(argv[1], atoi(argv[2]), atoi(argv[3]));
-    else
+    else if(atoi(argv[4]) == 1)
         displayTextImagef(argv[1], atoi(argv[2]), atoi(argv[3]));
+    else if(atoi(argv[4]) == 2)
+        displayTextImageS8(argv[1], atoi(argv[2]), atoi(argv[3]));
     return 0;
 }
