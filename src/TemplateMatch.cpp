@@ -275,7 +275,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
 //    std::ofstream fout("counts.txt");
     bool flag = false;
 
-    for (dg = 0; dg < 60; dg += 1) {
+    for (dg = 0; dg < 60; dg += 4) {
         int count = 0;
         TimeTracker tt;
         tt.start();
@@ -286,9 +286,9 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
         double normGreediness =
                 ((1 - greediness * minScore) / (1 - greediness)) / tpl->noOfCordinates; // precompute greedniness
 
-        for (i = 0; i < Ssize.height; i += 1) {
+        for (i = 0; i < Ssize.height; i += 4) {
 
-            for (j = 0; j < Ssize.width; j += 1) {
+            for (j = 0; j < Ssize.width; j += 4) {
                 partialSum = 0; // initilize partialSum measure
                 for (m = 0; m < tpl->noOfCordinates; m += 1) {
                     curX = i + tpl->cordinates[m].x;    // template X coordinate
@@ -296,7 +296,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
                     iTx = tpl->edgeDerivativeX[m];    // template X derivative
                     iTy = tpl->edgeDerivativeY[m];    // template Y derivative
 
-                    if (curX < region.x || curY < region.y || curX > region.x + region.width - 1 || curY > region.y + region.height - 1)
+                    if (curX < 0 || curY < 0 || curX > Ssize.height - 1 || curY > Ssize.width - 1)
                         continue;
 
                     _Sdx = (short *) (Sdx->fptr + Sdx->step * (curX));
@@ -330,7 +330,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
                     resultPoint->x = i;            // result coordinate X
                     resultPoint->y = j;            // result coordinate Y
                     *resultDegree = dg;
-                    if (resultScore > 0.26  && sumOfCoords > tpl->noOfCordinates * 0.9 / 4) {
+                    if (resultScore > 0.20  && sumOfCoords > tpl->noOfCordinates * 0.8 / 4) {
 //                        flag = true;
 //                        break;
                     }
@@ -543,7 +543,7 @@ void FindTemplateInPyramid(TemplateMatch tpls[][60], IMat *images[], IPoint *pos
     region3.width = 80;
     region3.height = 50;
     double degree;
-    double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.95, 0.999995, &point, 30, &degree, region3);
+    double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.8, 0.995, &point, 30, &degree, region3);
 
     tt.stop();
 

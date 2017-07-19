@@ -89,7 +89,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
-                h_acc.at<float>(y0,x0) +=  H[y0][x0][r];// > 1 ? 255 : 0;
+                h_acc.at<uchar>(y0,x0) +=  (uchar)H[y0][x0][r];// > 1 ? 255 : 0;
                 // printf("h : %d", H[y0][x0][r]);
             }
         }
@@ -172,7 +172,7 @@ int main( int argc, char** argv )
     // double H_h = sqrt(2.0) * (double) (mag.rows>mag.cols ? mag.rows : mag.cols); //-r -> +r
     // double H_w = 180;
 
-    h_acc.create(mag.rows, mag.cols, CV_32FC1);
+    h_acc.create(mag.rows, mag.cols, CV_8UC1);
     // threshold(h_acc,h_out,0,255,THRESH_TOZERO);
     // threshold(h_out,h_acc,0,255,THRESH_TOZERO);
 
@@ -190,10 +190,15 @@ int main( int argc, char** argv )
     // threshold(h_acc,h_out, 200,255,THRESH_TOZERO);
 
     //save images
-    imshow( "dx.jpg", dx_out );
-    imshow( "dy.jpg", dy_out );
+    Mat dis_show;
+    Mat dx_show, dy_show;
+    convertScaleAbs(dis_out, dis_show);
+    convertScaleAbs(dx_out, dx_show);
+    convertScaleAbs(dy_out, dy_show);
+    imshow( "dx.jpg", dx_show);
+    imshow( "dy.jpg", dy_show);
     imshow( "mag.jpg", mag );
-    imshow( "dist.jpg", dis_out );
+    imshow( "dist.jpg", dis_show);
     imshow( "h_space.jpg", h_acc);
 //
     imshow("result.png",image);
