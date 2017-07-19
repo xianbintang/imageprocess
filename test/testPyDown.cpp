@@ -118,11 +118,11 @@ int main(int argc, char ** argv )
 //    imshow("level 3", level3);
 //    imshow("level 2", level2);
 //    imshow("level 1", level1);
-    imwrite("images/Sgray.bmp", grayImage);
-    imwrite("images/Slevel4.bmp", level4);
-    imwrite("images/Slevel3.bmp", level3);
-    imwrite("images/Slevel2.bmp", level2);
-    imwrite("images/Slevel1.bmp", level1);
+    imwrite("images/Tgray.bmp", grayImage);
+    imwrite("images/Tlevel4.bmp", level4);
+    imwrite("images/Tlevel3.bmp", level3);
+    imwrite("images/Tlevel2.bmp", level2);
+    imwrite("images/Tlevel1.bmp", level1);
 //    Mat dstImage2;//临时变量和目标图的定义
 //
 //    pyrDown( dstImage1, dstImage2, Size( dstImage1.cols/2, dstImage1.rows/2 ) );
