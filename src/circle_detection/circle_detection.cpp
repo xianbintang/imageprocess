@@ -12,28 +12,19 @@
 
 using namespace cv;
 
-void sobel(Mat img, Mat &dx, Mat &dy, Mat &mag, Mat &dist)
+void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
     float acc_dx = 0, acc_dy = 0;         //accumulators
-    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
-    float k2 [] = {-1,0,1,-2,0,2,-1,0,1};//{-2,0,2,-4,0,4,-2,0,2};//{-1,0,1,-2,0,2,-1,0,1};    //sobel kernal dy
+//    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
+//    float k2 [] = {-1,0,1,-2,0,2,-1,0,1};//{-2,0,2,-4,0,4,-2,0,2};//{-1,0,1,-2,0,2,-1,0,1};    //sobel kernal dy
+
+    cv::Sobel(img, sdx, CV_16S, 1, 0, 3);
+    cv::Sobel(img, sdy, CV_16S, 0, 1, 3);
 
     for(int i=0; i<img.rows; i++) {
         for(int j=0; j<img.cols; j++) {
-            acc_dx = acc_dy = 0;
-
-            //apply kernel/mask
-            for (int nn=-1; nn<2; nn++) {
-                for (int mm = -1; mm < 2; mm++) {
-                    if (i + nn > 0 && i + nn < img.rows && j + mm > 0 && j + mm < img.cols) {
-                        acc_dx += (float)img.at<uchar>(i+nn,j+mm) * k1[((mm+1)*3) + nn + 1];
-                        acc_dy += (float)img.at<uchar>(i+nn,j+mm) * k2[((mm+1)*3) + nn + 1];
-                    }
-                }
-            }
-            //write final values
-            dx.at<float>(i,j) = acc_dx;
-            dy.at<float>(i,j) = acc_dy;
+            acc_dx = (float)sdx.at<short>(i, j);
+            acc_dy = (float)sdy.at<short>(i, j);
             mag.at<float>(i,j) = (sqrtf(acc_dy*acc_dy + acc_dx*acc_dx)) > 100 ? 255 : 0;
             dist.at<float>(i,j) = atan2f(acc_dy,acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
@@ -141,7 +132,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
 
     for(int i = 0; i < bestCircles.size(); i++) {
 //    for(int i = 0; i < 4; i++) {
-        int lineThickness = 1;
+        int lineThickness = 2;
         int lineType = 10;
         int shift = 0;
         int xCoord = bestCircles[i].x;
@@ -149,7 +140,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
         std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
-        circle(coins, center, radius-1, Scalar(255,0,0), lineThickness, lineType, shift);
+        circle(coins, center, radius-1, Scalar(0,0,255), lineThickness, lineType, shift);
     }
 }
 
@@ -166,8 +157,8 @@ int main( int argc, char** argv )
     image = imread( imageName, 1);
     cvtColor( image, img_grey, COLOR_BGR2GRAY );
 
-    dx.create(img_grey.rows, img_grey.cols, CV_32FC1);
-    dy.create(img_grey.rows, img_grey.cols, CV_32FC1);
+    dx.create(img_grey.rows, img_grey.cols, CV_16SC1);
+    dy.create(img_grey.rows, img_grey.cols, CV_16SC1);
     mag.create(img_grey.rows, img_grey.cols, CV_32FC1);
     dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
 
@@ -189,8 +180,8 @@ int main( int argc, char** argv )
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, 10, 50, 80, 30, h_acc, image);
-    hough(mag, dist, 10, 22, 28, 20, h_acc, image);
+    hough(mag, dist, 12, 20, 90, 20, h_acc, image);
+//    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
 

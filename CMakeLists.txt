@@ -71,3 +71,6 @@ target_link_libraries(colorDetection ${OpenCV_LIBS})
 
 add_executable(circle_detection src/circle_detection/circle_detection.cpp)
 target_link_libraries(circle_detection ${OpenCV_LIBS})
+
+add_executable(getPoint test/getPoint.cpp)
+target_link_libraries(getPoint ${OpenCV_LIBS})
