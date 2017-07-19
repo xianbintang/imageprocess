@@ -16,6 +16,7 @@ message("Build Type:" ${CMAKE_BUILD_TYPE}    ${CMAKE_CXX_FLAGS})
 
 
 
+set(OpenCV_DIR E://ClionProjects//opencv_install)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(include)
@@ -50,7 +51,7 @@ target_link_libraries(RotateImage1 ${OpenCV_LIBS})
 add_executable(TemplateMatch src/RotateImage.cpp src/TemplateMatchTest.cpp src/TemplateMatch.cpp src/TemplateMatchTest.cpp src/IMatImpl.cpp src/sobel.cpp)
 target_link_libraries(TemplateMatch ${OpenCV_LIBS})
 
-add_executable(test1 test/getPoint.cpp)
+add_executable(test1 test/test.cpp)
 target_link_libraries(test1 ${OpenCV_LIBS})
 
 add_executable(testpyr test/testPyDown.cpp)

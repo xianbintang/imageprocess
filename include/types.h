@@ -34,6 +34,10 @@ typedef struct IMat{
 	int type;
 } IMat;
 
+typedef struct _Rect_ {
+	int x, y;
+    int width, height;
+}Rect;
 
 struct Image{
     int width;
