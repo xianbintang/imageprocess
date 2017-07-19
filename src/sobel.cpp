@@ -5,6 +5,7 @@
 #include <opencv/highgui.h>
 #include "types.h"
 #include <fstream>
+#include <iostream>
 
 void Ipl2IMat(IplImage *img, IMat * src) {
     for (int i = 0; i < img->height; ++i) {
@@ -86,4 +87,15 @@ void HI_Sobel(const IMat *src, IMat *gx, IMat *gy)
 //    fIMat2Ipl(gy, img);
 //    cvShowImage("gy", img);
 //    cvWaitKey(-1);
+}
+void HI_Canny(const IMat *src, IMat *edge)
+{
+    IplImage *  img = cvCreateImage(cvSize(src->width, src->height), 8, 1);
+    IMat2Ipl(src, img);
+
+    IplImage *edgeIpl = cvCreateImage(cvSize(src->width, src->height), IPL_DEPTH_8U, 1);
+    cvCanny(img, edgeIpl, 30, 170, 3);
+//    std::cout <<"hehe" <<std::endl;
+
+    Ipl2IMat(edgeIpl, edge);
 }

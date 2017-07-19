@@ -159,10 +159,10 @@ int main(int argc, char ** argv) {
         rect[1].x = 8;
         rect[1].y = 40;
 
-        rect[2].x = 135;
+        rect[2].x = 138;
         rect[2].y = 40;
 
-        rect[3].x = 135;
+        rect[3].x = 138;
         rect[3].y = 8;
 
         RotateGrayImage(*tg, &matDst, i, rect);
@@ -177,22 +177,22 @@ int main(int argc, char ** argv) {
     "tpls/tpls4/tplArgs.txt"};
 
 //    saveTpls(tpls[4], 60, filenames);
-    ResumeTpls(tpls[4], 60, filenames);
+//    ResumeTpls(tpls[4], 60, filenames);
     //god
 
     for (int i = 0; i < 60; ++i) {
         IMat *matDst;
-        rect[0].x = 3;
-        rect[0].y = 3;
+        rect[0].x = 2;
+        rect[0].y = 2;
 
-        rect[1].x = 3;
+        rect[1].x = 2;
         rect[1].y = 18;
 
-        rect[2].x = 75;
+        rect[2].x = 69;
         rect[2].y = 18;
 
-        rect[3].x = 75;
-        rect[3].y = 3;
+        rect[3].x = 69;
+        rect[3].y = 2;
 
         RotateGrayImage(*t4, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
@@ -207,13 +207,25 @@ int main(int argc, char ** argv) {
     "tpls/tpls3/tplArgs.txt"};
 
 //    saveTpls(tpls[3], 60, filenames1);
-    ResumeTpls(tpls[3], 60, filenames1);
-//    for (int i = 0; i < 60; ++i) {
-//        IMat *matDst;
+//    ResumeTpls(tpls[3], 60, filenames1);
+    for (int i = 0; i < 60; ++i) {
+        IMat *matDst;
+        rect[0].x = 1;
+        rect[0].y = 1;
+
+        rect[1].x = 1;
+        rect[1].y = 25;
+
+        rect[2].x = 43;
+        rect[2].y = 25;
+
+        rect[3].x = 43;
+        rect[3].y = 1;
+
 //        RotateGrayImage(*t3, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
-//        CreateGeoMatchModel(&tpls[2][i], matDst, 30, 170, rect);
-//    }
+        CreateGeoMatchModel(&tpls[2][i], matDst, 50, 170, rect);
+    }
 //    downSampleTpl(tpls[3], tpls[2]);
 //    for (int k = 0; k < 60; ++k) {
 //        printf("tpls2 %d: %d\n", k, tpls[2][k].noOfCordinates);
@@ -253,11 +265,11 @@ int main(int argc, char ** argv) {
 
 //    ResumeTpl(&tpl);
 //    rotateTpl(&tpl, 142, 66, 3);
-//    DrawContours(dst, tpls[3][10], CvScalar(255,255,255), 1);
+    DrawContours(dst, tpls[2][0].centerOfGravity, tpls[2][0], CvScalar(255,255,255), 1);
 //
 //    cvNamedWindow("tpl", 1);
-//    cvShowImage("hehe", dst);
-//    cvWaitKey(-1);
+    cvShowImage("hehe", dst);
+    cvWaitKey(-1);
     IPoint point;
     double degree;
     image= cvLoadImage(argv[2], -1 );

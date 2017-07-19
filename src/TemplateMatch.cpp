@@ -42,6 +42,7 @@ float IfastAtan2( float y, float x ) {
 int RotateGrayImage(IMat matSrc, IMat **matDst, const double degree);
 
 void HI_Sobel(const IMat *src, IMat *gx, IMat *gy);
+void HI_Canny(const IMat *src, IMat *edge);
 
 int CreateGeoMatchModel(TemplateMatch *tpl,  const IMat *src, double maxContrast,double minContrast, IPoint * rect)
 {
@@ -74,189 +75,55 @@ int CreateGeoMatchModel(TemplateMatch *tpl,  const IMat *src, double maxContrast
     // Calculate gradient of Template
     gx = fICreateMat( Ssize.height, Ssize.width, S16C1 );		//create Matrix to store X derivative
     gy = fICreateMat( Ssize.height, Ssize.width, S16C1 );		//create Matrix to store Y derivative
+    IMat *edge= ICreateMat( Ssize.height, Ssize.width, U8C1 );		//create Matrix to store Y derivative
     HI_Sobel(src, gx, gy);		//gradient in X direction
-//#define _DEBUG_
-#ifdef _DEBUG_
-    saveResult(*src, "afterSobelPCSrc.txt");
-    saveResultf(*gx, "afterSobelPCgx.txt");
-    saveResultf(*gy, "afterSobelPCgy.txt");
-#endif
+    HI_Canny(src, edge);
 
-    nmsEdges = ICreateMat( Ssize.height, Ssize.width, U8C1);		//create Matrix to store Final nmsEdges
     const short* _sdx;
     const short* _sdy;
     double fdx,fdy;
-    double MagG, DirG;
-    double MaxGradient=-99999.99;
-    double direction;
-    //int *orients = new int[ Ssize.height *Ssize.width];
-    int *orients = (int *)malloc(sizeof(int) * Ssize.height *Ssize.width);
-    int count = 0,i,j; // count variable;
 
     double **magMat;
     CreateDoubleMatrix(&magMat ,Ssize);
 
-    /*
-     * 一个隐藏的bug是在rotate后的边缘处可能检测到边缘的两条白线，这里设置成-2来消掉这个, 由于rotate导致的问题。
-     * */
-    for( i = 1; i < Ssize.height-2; i++ )
-    {
-        for( j = 1; j < Ssize.width-2; j++ )
-        {
-            _sdx = (short*)(gx->fptr + gx->step*i);
-            _sdy = (short*)(gy->fptr + gy->step*i);
-            fdx = _sdx[j]; fdy = _sdy[j];        // read x, y derivatives
-
-            MagG = sqrt((float)(fdx*fdx) + (float)(fdy*fdy)); //Magnitude = Sqrt(gx^2 +gy^2)
-//            direction =atan2((float)fdy,(float)fdx);	 //Direction = invtan (Gy / Gx)
-            direction =IfastAtan2((float)fdy,(float)fdx);	 //Direction = invtan (Gy / Gx)
-            magMat[i][j] = MagG;
-
-            if(MagG>MaxGradient)
-                MaxGradient=MagG; // get maximum gradient value for normalizing.
-
-
-            // get closest angle from 0, 45, 90, 135 set
-            if ( (direction>0 && direction < 22.5) || (direction >157.5 && direction < 202.5) || (direction>337.5 && direction<360)  )
-                direction = 0;
-            else if ( (direction>22.5 && direction < 67.5) || (direction >202.5 && direction <247.5)  )
-                direction = 45;
-            else if ( (direction >67.5 && direction < 112.5)||(direction>247.5 && direction<292.5) )
-                direction = 90;
-            else if ( (direction >112.5 && direction < 157.5)||(direction>292.5 && direction<337.5) )
-                direction = 135;
-            else
-                direction = 0;
-
-            orients[count] = (int)direction;
-            count++;
-        }
-    }
-
-    count=0; // init count
-    // non maximum suppression
-    double leftPixel,rightPixel;
-
-    /* orients 是用来做非极大值抑制的 */
-    for( i = 1; i < Ssize.height-1; i++ )
-    {
-        for( j = 1; j < Ssize.width-1; j++ )
-        {
-            switch ( orients[count] )
-            {
-                case 0:
-                    leftPixel  = magMat[i][j-1];
-                    rightPixel = magMat[i][j+1];
-                    break;
-                case 45:
-                    leftPixel  = magMat[i-1][j+1];
-                    rightPixel = magMat[i+1][j-1];
-                    break;
-                case 90:
-                    leftPixel  = magMat[i-1][j];
-                    rightPixel = magMat[i+1][j];
-                    break;
-                case 135:
-                    leftPixel  = magMat[i-1][j-1];
-                    rightPixel = magMat[i+1][j+1];
-                    break;
-            }
-            // compare current pixels value with adjacent pixels
-            if (( magMat[i][j] < leftPixel ) || (magMat[i][j] < rightPixel ) )
-                (nmsEdges->ptr + nmsEdges->step*i)[j]=0;
-            else
-                (nmsEdges->ptr + nmsEdges->step*i)[j]=(uchar)(magMat[i][j]/MaxGradient*255);
-
-            count++;
-        }
-    }
-
-
     int RSum=0,CSum=0;
     int curX,curY;
-    int flag=1;
 
-    //Hysterisis threshold
-    for( i = 1; i < Ssize.height-1; i++ )
-    {
-        for( j = 1; j < Ssize.width; j++ )
-        {
-            _sdx = (short*)(gx->fptr + gx->step*i);
-            _sdy = (short*)(gy->fptr + gy->step*i);
-            fdx = _sdx[j]; fdy = _sdy[j];
-
-            MagG = sqrt(fdx*fdx + fdy*fdy); //Magnitude = Sqrt(gx^2 +gy^2)
-//            DirG =atan2((float)fdy,(float)fdx);	 //Direction = tan(y/x)
-            DirG =IfastAtan2((float)fdy,(float)fdx);	 //Direction = tan(y/x)
-
-            ////((uchar*)(imgGDir->imageData + imgGDir->widthStep*i))[j]= MagG;
-            flag=1;
-            if(((double)((nmsEdges->ptr + nmsEdges->step*i))[j]) < maxContrast)
-            {
-                if(((double)((nmsEdges->ptr + nmsEdges->step*i))[j])< minContrast)
-                {
-
-                    (nmsEdges->ptr + nmsEdges->step*i)[j]=0;
-                    flag=0; // remove from edge
-                    ////((uchar*)(imgGDir->imageData + imgGDir->widthStep*i))[j]=0;
-                }
-                else
-                {   // if any of 8 neighboring pixel is not greater than max contraxt remove from edge
-                    if( (((double)((nmsEdges->ptr + nmsEdges->step*(i-1)))[j-1]) < maxContrast)	&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*(i-1)))[j]) < maxContrast)		&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*(i-1)))[j+1]) < maxContrast)	&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*i))[j-1]) < maxContrast)		&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*i))[j+1]) < maxContrast)		&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*(i+1)))[j-1]) < maxContrast)	&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*(i+1)))[j]) < maxContrast)		&&
-                        (((double)((nmsEdges->ptr + nmsEdges->step*(i+1)))[j+1]) < maxContrast)	)
-                    {
-                        (nmsEdges->ptr + nmsEdges->step*i)[j]=0;
-                        flag=0;
-                        ////((uchar*)(imgGDir->imageData + imgGDir->widthStep*i))[j]=0;
-                    }
-                }
-
-            }
-
-            // save selected edge information
+    // save selected edge information
+    for (int i = 0; i < edge->height; ++i) {
+        for (int j = 0; j < edge->width; ++j) {
             curX=i;	curY=j;
             IPoint p;
             p.x = i;
             p.y = j;
-            if(flag!=0 && IsPointInMatrix(p, rect))
-//            if(flag!=0)
-            {
+            _sdx = (short*)(gx->fptr + gx->step*i);
+            _sdy = (short*)(gy->fptr + gy->step*i);
+            fdx = _sdx[j]; fdy = _sdy[j];
+            char e = *((char *)(edge->ptr + edge->step * i + j));
+
+            if(e !=0 && IsPointInMatrix(p, rect))  {
                 if(fdx!=0 || fdy!=0)
                 {
                     RSum=RSum+curX;	CSum=CSum+curY; // Row sum and column sum for center of gravity
 
                     tpl->cordinates[tpl->noOfCordinates].x = curX;
                     tpl->cordinates[tpl->noOfCordinates].y = curY;
-//                    tpl->edgeDerivativeX[tpl->noOfCordinates] = fdx;
-//                    tpl->edgeDerivativeY[tpl->noOfCordinates] = fdy;
 
                     double vector_length = sqrt(fdx * fdx + fdy * fdy);
                     tpl->edgeDerivativeX[tpl->noOfCordinates] = fdx / vector_length;
                     tpl->edgeDerivativeY[tpl->noOfCordinates] = fdy / vector_length;
-
-                    //handle divide by zero
-                    if(MagG!=0)
-                        tpl->edgeMagnitude[tpl->noOfCordinates] = 1/MagG;  // gradient magnitude
-                    else
-                        tpl->edgeMagnitude[tpl->noOfCordinates] = 0;
-
                     tpl->noOfCordinates++;
                 }
             }
         }
     }
 
+
     tpl->centerOfGravity.x = RSum / tpl->noOfCordinates; // center of gravity
     tpl->centerOfGravity.y = CSum/tpl->noOfCordinates ;	// center of gravity
 
-    // change coordinates to reflect center of gravity
-    /* 将重心变换到坐标原点 */
+// change coordinates to reflect center of gravity
+/* 将重心变换到坐标原点 */
     int m;
     for(m=0;m< tpl->noOfCordinates ;m++)
     {
@@ -268,19 +135,8 @@ int CreateGeoMatchModel(TemplateMatch *tpl,  const IMat *src, double maxContrast
         tpl->cordinates[m].y =temp-tpl->centerOfGravity.y;
     }
 
-    ////cvSaveImage("Edges.bmp",imgGDir);
-
-    // free alocated memories
-//    delete[] orients;
-    ////cvReleaseImage(&imgGDir);
-//    cvReleaseMat( &gx );
-//    cvReleaseMat( &gy );
-//    cvReleaseMat(&nmsEdges);
-
     ReleaseDoubleMatrix(&magMat ,Ssize.height);
 
-//    std::cout << tpl->noOfCordinates<< std::endl;
-//    std::cout << "height: " << tpl->modelHeight<< "center: " << tpl->centerOfGravity.x << tpl->centerOfGravity.y << std::endl;
     tpl->modelDefined=true;
     return 1;
 }
@@ -419,11 +275,11 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
         double normGreediness =
                 ((1 - greediness * minScore) / (1 - greediness)) / tpl->noOfCordinates; // precompute greedniness
 
-        for (i = 0; i < Ssize.height; i += 4) {
+        for (i = 0; i < Ssize.height; i += 1) {
 
-            for (j = 0; j < Ssize.width; j += 4) {
+            for (j = 0; j < Ssize.width; j += 1) {
                 partialSum = 0; // initilize partialSum measure
-                for (m = 0; m < tpl->noOfCordinates; m += 4) {
+                for (m = 0; m < tpl->noOfCordinates; m += 1) {
                     curX = i + tpl->cordinates[m].x;    // template X coordinate
                     curY = j + tpl->cordinates[m].y; // template Y coordinate
                     iTx = tpl->edgeDerivativeX[m];    // template X derivative
@@ -464,8 +320,8 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
                     resultPoint->y = j;            // result coordinate Y
                     *resultDegree = dg;
                     if (resultScore > 0.26  && sumOfCoords > tpl->noOfCordinates * 0.9 / 4) {
-                        flag = true;
-                        break;
+//                        flag = true;
+//                        break;
                     }
                 }
             }
