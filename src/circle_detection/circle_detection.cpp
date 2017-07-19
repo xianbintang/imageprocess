@@ -52,7 +52,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     int radiusRange = maxRadius - minRadius;
     int HEIGHT = img_data.rows;
     int WIDTH = img_data.cols;
-    int DEPTH = radiusRange;
+    int DEPTH = maxRadius;
 
     double ***H;
 
@@ -76,7 +76,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
             // printf("data point : %f\n", img_data.at<float>(y,x));
             if( (float) img_data.at<float>(y,x) > 250.0 )  //threshold image
             {
-                for (int r=minRadius; r<radiusRange; r++)
+                for (int r=minRadius; r< maxRadius; r++)
                 {
 
                     int x0 = round(x + r * cos(dist.at<float>(y,x)) );
@@ -97,18 +97,13 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     //create 2D image by summing values of the radius dimension
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
-            for(int r = minRadius; r < radiusRange; r++) {
+            for(int r = minRadius; r < maxRadius; r++) {
                 h_acc.at<float>(y0,x0) +=  H[y0][x0][r];// > 1 ? 255 : 0;
                 // printf("h : %d", H[y0][x0][r]);
             }
         }
     }
-    for(int y0 = 0; y0 < HEIGHT; y0++) {
-        for(int x0 = 0; x0 < WIDTH; x0++) {
-            if (h_acc.at<float>(y0,x0) > 130)
-                printf("x: %d y: %d h : %lf\n", x0, y0,  h_acc.at<float>(y0,x0));
-        }
-    }
+
 
     std::vector<Point3f> bestCircles;
 
@@ -116,9 +111,9 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     int count = 0;
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
-            for(int r = minRadius; r < radiusRange; r++) {
+            for(int r = minRadius; r < maxRadius; r++) {
                 if(H[y0][x0][r] > threshold){
-//                    std::cout << H[y0][x0][r]<< std::endl;
+                    std::cout << H[y0][x0][r]<< std::endl;
                     count++;
                     Point3f circle(x0, y0, r);
                     int i;
@@ -153,7 +148,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
         int yCoord = bestCircles[i].y;
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
-//        std::cout << H[yCoord][xCoord][radius] << std::endl;
+        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
         circle(coins, center, radius-1, Scalar(255,0,0), lineThickness, lineType, shift);
     }
 }
@@ -194,7 +189,8 @@ int main( int argc, char** argv )
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, 10, 10, 100, 0, h_acc, image);
+    hough(mag, dist, 10, 50, 80, 30, h_acc, image);
+    hough(mag, dist, 10, 22, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
 
