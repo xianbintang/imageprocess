@@ -14,7 +14,7 @@ using namespace cv;
 
 void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
-    float acc_dx = 0, acc_dy = 0;         //accumulators
+    short acc_dx = 0, acc_dy = 0;         //accumulators
 //    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
 //    float k2 [] = {-1,0,1,-2,0,2,-1,0,1};//{-2,0,2,-4,0,4,-2,0,2};//{-1,0,1,-2,0,2,-1,0,1};    //sobel kernal dy
 
@@ -23,10 +23,10 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 
     for(int i=0; i<img.rows; i++) {
         for(int j=0; j<img.cols; j++) {
-            acc_dx = (float)sdx.at<short>(i, j);
-            acc_dy = (float)sdy.at<short>(i, j);
+            acc_dx = (short)sdx.at<short>(i, j);
+            acc_dy = (short)sdy.at<short>(i, j);
             mag.at<float>(i,j) = (sqrtf(acc_dy*acc_dy + acc_dx*acc_dx)) > 100 ? 255 : 0;
-            dist.at<float>(i,j) = atan2f(acc_dy,acc_dx);
+            dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }
     }
@@ -180,7 +180,8 @@ int main( int argc, char** argv )
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, 12, 20, 90, 20, h_acc, image);
+    hough(mag, dist, 12, 10, 150, 20, h_acc, image);
+    hough(mag, dist, 10, 3, 35, 20, h_acc, image);
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
