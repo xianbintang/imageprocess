@@ -68,3 +68,6 @@ target_link_libraries(testTemplateMatch ${OpenCV_LIBS})
 
 add_executable(colorDetection src/color_detection/color_detection.cpp)
 target_link_libraries(colorDetection ${OpenCV_LIBS})
+
+add_executable(circle_detection src/circle_detection/circle_detection.cpp)
+target_link_libraries(circle_detection ${OpenCV_LIBS})
