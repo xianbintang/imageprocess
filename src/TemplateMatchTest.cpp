@@ -197,7 +197,7 @@ int main(int argc, char ** argv) {
         RotateGrayImage(*t4, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
         CreateGeoMatchModel(&tpls[3][i], matDst, 30, 150, rect);
-        std::cout << tpls[3][i].noOfCordinates << std::endl;
+//        std::cout << tpls[3][i].noOfCordinates << std::endl;
     }
     std::cout << tpls[3][0].noOfCordinates <<std::endl;
     char *filenames1[5] = {
