@@ -96,7 +96,8 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     }
 
 
-    std::vector<Point3f> bestCircles;
+    Point3f bestCircles[20];
+    int number_of_best_cirles = 0;
 
     //compute optimal circles
     int count = 0;
@@ -113,7 +114,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
                      * 如果在原来的bestcircles附近，那么就更新领域内最大值。
                      * 如果不在附近则退出循环
                      * */
-                    for(i = 0; i < bestCircles.size(); i++) {
+                    for(i = 0; i < number_of_best_cirles; i++) {
                         int xCoord = bestCircles[i].x;
                         int yCoord = bestCircles[i].y;
                         int radius = bestCircles[i].z;
@@ -121,16 +122,16 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
                         if(abs(xCoord - x0) < distance && abs(yCoord - y0) < distance) {
                             /* 如果在领域附近而且分更高，则更新之 */
                             if(H[y0][x0][r] > H[yCoord][xCoord][radius]) {
-                                bestCircles.erase(bestCircles.begin()+i);
-                                bestCircles.insert(bestCircles.begin(), circle);
+                                bestCircles[i] = circle;
                             }
                             /* 如果在领域附近但是分低，则不管，由于i此时不等于bestCircles，所以不会将其加入为新圆 */
                             break;
                         }
                     }
                     /* 如果新的这个圆不是在原来的圆附近，那么将这个新的圆加入vector中 */
-                    if(i == bestCircles.size()){
-                        bestCircles.insert(bestCircles.begin(), circle);
+                    if(i == number_of_best_cirles){
+                        bestCircles[i] = circle;
+                        number_of_best_cirles++;
                     }
                 }
             }
@@ -139,7 +140,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     std::cout << "count: " << count << std::endl;
 
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
-    for(int i = 0; i < bestCircles.size(); i++) {
+    for(int i = 0; i < number_of_best_cirles; i++) {
 //    for(int i = 0; i < 4; i++) {
         int lineThickness = 2;
         int lineType = 10;
