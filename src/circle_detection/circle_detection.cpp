@@ -12,6 +12,7 @@
 
 using namespace cv;
 
+bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy);
 void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
     short acc_dx = 0, acc_dy = 0;         //accumulators
@@ -39,7 +40,8 @@ void inc_if_inside(double *** H, int x, int y, int height, int width, int r )
 }
 
 
-void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins){
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins)
+{
     int radiusRange = maxRadius - minRadius;
     int HEIGHT = img_data.rows;
     int WIDTH = img_data.cols;
@@ -150,7 +152,9 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
         std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
-        circle(coins, center, radius-1, Scalar(0,0,255), lineThickness, lineType, shift);
+        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy)) {
+            circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
+        }
     }
 }
 
@@ -190,8 +194,8 @@ int main( int argc, char** argv )
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, 12, 10, 150, 20, h_acc, image);
-    hough(mag, dist, 10, 3, 35, 20, h_acc, image);
+    hough(mag, dist, dx, dy, 8, 10, 150, 20, h_acc, image);
+    hough(mag, dist, dx, dy, 8, 3, 35, 20, h_acc, image);
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
@@ -216,4 +220,24 @@ int main( int argc, char** argv )
     return 0;
 }
 
+/* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
+bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
+{
+//    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
+//                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
+//                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
+    int count = 0;
+    for (int i = -180; i < 180; i += 2) {
+        double angle = 3.14159265f * i / 180;
+        int x0 = (int)round(p.x + radius * cos(angle));
+        int y0 = (int)round(p.y + radius * sin(angle));
+//        short sdxv, sdyv;
+//        sdxv = dx.at<short>(x0, y0);
+//        sdyv = dy.at<short>(x0, y0);
+        if (mag.at<float>(x0, y0) != 0) {
+            count++;
+        }
+    }
+    return count > 10;
+}
 
