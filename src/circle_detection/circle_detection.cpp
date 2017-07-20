@@ -108,19 +108,27 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
                     count++;
                     Point3f circle(x0, y0, r);
                     int i;
+                    /*
+                     * 检查到一个满足阈值的圆后先与原来的圆判断，是不是在原来的圆附近
+                     * 如果在原来的bestcircles附近，那么就更新领域内最大值。
+                     * 如果不在附近则退出循环
+                     * */
                     for(i = 0; i < bestCircles.size(); i++) {
                         int xCoord = bestCircles[i].x;
                         int yCoord = bestCircles[i].y;
                         int radius = bestCircles[i].z;
                         /* 找到领域内得到分数最高的圆 */
                         if(abs(xCoord - x0) < distance && abs(yCoord - y0) < distance) {
+                            /* 如果在领域附近而且分更高，则更新之 */
                             if(H[y0][x0][r] > H[yCoord][xCoord][radius]) {
                                 bestCircles.erase(bestCircles.begin()+i);
                                 bestCircles.insert(bestCircles.begin(), circle);
                             }
+                            /* 如果在领域附近但是分低，则不管，由于i此时不等于bestCircles，所以不会将其加入为新圆 */
                             break;
                         }
                     }
+                    /* 如果新的这个圆不是在原来的圆附近，那么将这个新的圆加入vector中 */
                     if(i == bestCircles.size()){
                         bestCircles.insert(bestCircles.begin(), circle);
                     }
@@ -130,6 +138,7 @@ void hough(Mat &img_data, Mat &dist, double threshold, int minRadius, int maxRad
     }
     std::cout << "count: " << count << std::endl;
 
+    /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     for(int i = 0; i < bestCircles.size(); i++) {
 //    for(int i = 0; i < 4; i++) {
         int lineThickness = 2;
