@@ -224,7 +224,8 @@ int main( int argc, char** argv )
     /* 半径最大为1/2 * width, 最小为10像素， step为10像素 */
 //    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
 //    hough(mag, dist, dx, dy, 10, 10, 75, 20, h_acc, image);
-    int step = width / 50;
+//    int step = width / 20;
+    int step = 10;
 
     Circle circles[20];
     Circle total_circles[100];
@@ -248,6 +249,7 @@ int main( int argc, char** argv )
         double score = total_circles[i].score;
         if (radius != 0) {
             circle(image, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
+            std::cout << "count: " << "score: " << score << std::endl;
             j++;
         }
     }
@@ -307,11 +309,8 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *s
     }
     *score = 1.0 * count / 360;
     /* 拟合60%的点 */
-    if (count > 216) {
-        std::cout << "count: " << "score: " << *score << count << std::endl;
-    }
     /* 至少拟合一半的点数 */
-    return count > 180;
+    return count > 216;
 }
 
 /* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
@@ -333,7 +332,7 @@ void remove_duplicates(Circle circles[], int num)
 
             s0 = circles[i].score;
             s1 = circles[j].score;
-            if ((abs(x0 - x1) < 5 && abs(y0 - y1) < 5) && abs(r0 - r1) < 5) {
+            if ((abs(x0 - x1) < 8 && abs(y0 - y1) < 8) && abs(r0 - r1) < 8) {
                 if (s0 > s1) {
                     circles[j].center.x = 0;
                     circles[j].center.y = 0;
