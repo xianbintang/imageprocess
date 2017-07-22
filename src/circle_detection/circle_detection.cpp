@@ -107,7 +107,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
                 if(H[y0][x0][r] > threshold){
-                    std::cout << H[y0][x0][r]<< std::endl;
+//                    std::cout << H[y0][x0][r]<< std::endl;
                     count++;
                     Point3f circle(x0, y0, r);
                     int i;
@@ -139,7 +139,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             }
         }
     }
-    std::cout << "count: " << count << std::endl;
+//    std::cout << "count: " << count << std::endl;
 
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     for(int i = 0; i < number_of_best_cirles; i++) {
@@ -151,7 +151,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         int yCoord = bestCircles[i].y;
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
-        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
+//        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
         if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy)) {
             circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
         }
@@ -227,17 +227,25 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
 //                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
 //                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
     int count = 0;
-    for (int i = -180; i < 180; i += 2) {
+    std::cout << "\nis it a circle? " << std::endl;
+    for (int i = -180; i < 180; i += 1) {
         double angle = 3.14159265f * i / 180;
         int x0 = (int)round(p.x + radius * cos(angle));
         int y0 = (int)round(p.y + radius * sin(angle));
 //        short sdxv, sdyv;
-//        sdxv = dx.at<short>(x0, y0);
-//        sdyv = dy.at<short>(x0, y0);
-        if (mag.at<float>(x0, y0) != 0) {
+//        sdxv = dx.at<short>(y0, x0);
+//        sdyv = dy.at<short>(y0, x0);
+//        double radial_direction = atan2f(sdyv, sdxv);
+        double radial_direction = dist.at<float>(y0, x0);
+
+        printf("%lf %lf \n", angle, radial_direction);
+        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52 */
+        if (fabs(angle - radial_direction) < 0.52) {
             count++;
         }
     }
-    return count > 10;
+    std::cout << "count: " << count << std::endl;
+    /* 至少拟合一半的点数 */
+    return count > 180;
 }
 
