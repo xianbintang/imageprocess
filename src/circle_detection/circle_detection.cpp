@@ -33,7 +33,7 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
     }
 }
 
-void inc_if_inside(double *** H, int x, int y, int height, int width, int r )
+void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
 {
     if (x>0 && x<width && y> 0 && y<height)
         H[y][x][r]++;
@@ -47,15 +47,15 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     int WIDTH = img_data.cols;
     int DEPTH = maxRadius;
 
-    double ***H;
+    int ***H;
 
     // Allocate memory
-    H = new double**[HEIGHT];
+    H = new int**[HEIGHT];
     for (int i = 0; i < HEIGHT; ++i) {
-        H[i] = new double*[WIDTH];
+        H[i] = new int*[WIDTH];
 
         for (int j = 0; j < WIDTH; ++j) {
-            H[i][j] = new double[DEPTH];
+            H[i][j] = new int[DEPTH];
             for (int k = 0; k < DEPTH; ++k) {
                 H[i][j][k] = 0;
             }
@@ -156,6 +156,15 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
         }
     }
+
+    /* free H */
+    for (int i = 0; i < HEIGHT; ++i) {
+        for (int j = 0; j < WIDTH; ++j) {
+            delete H[i][j];
+        }
+        delete H[i];
+    }
+
 }
 
 int main( int argc, char** argv )
@@ -192,10 +201,18 @@ int main( int argc, char** argv )
 
     // medianBlur(mag,mag,1);
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
+    int width = img_grey.cols;
+    int height = img_grey.rows;
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
-    hough(mag, dist, dx, dy, 5, 3, 35, 20, h_acc, image);
+    /* 需要遍历所有可能的半径组合来检测出所有的圆，这样才能检测出同心圆 */
+    /* 半径最大为1/2 * width, 最小为10像素， step为10像素 */
+//    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
+//    hough(mag, dist, dx, dy, 10, 10, 75, 20, h_acc, image);
+    int step = width / 50;
+    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
+        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image);
+    }
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
@@ -227,25 +244,32 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
 //                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
 //                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
     int count = 0;
+    int width = mag.cols;
+    int height = mag.rows;
 //    std::cout << "\nis it a circle? " << std::endl;
     for (int i = -180; i < 180; i += 1) {
         double angle = 3.14159265f * i / 180;
         int x0 = (int)round(p.x + radius * cos(angle));
         int y0 = (int)round(p.y + radius * sin(angle));
-//        short sdxv, sdyv;
-//        sdxv = dx.at<short>(y0, x0);
-//        sdyv = dy.at<short>(y0, x0);
-//        double radial_direction = atan2f(sdyv, sdxv);
-        double radial_direction = dist.at<float>(y0, x0);
+        short sdxv, sdyv;
+        if (y0 < 0 || x0 < 0 || y0 >= height || x0 >= width)
+            continue;
+        sdxv = dx.at<short>(y0, x0);
+        sdyv = dy.at<short>(y0, x0);
+        double radial_direction = atan2f(sdyv, sdxv);
+        double radial_direction1 = atan2f(-sdyv, -sdxv);
 
 //        printf("%lf %lf \n", angle, radial_direction);
-        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52 */
-        if (fabs(angle - radial_direction) < 0.52) {
+        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52, 角度如果小的话不能检测出不规整的圆 */
+        if (fabs(angle - radial_direction) < 0.26 || fabs(angle - radial_direction1) < 0.26) {
             count++;
         }
     }
-//    std::cout << "count: " << count << std::endl;
+    if (count > 216) {
+        std::cout << "count: " << "score: " << 1.0 * count / 360 << count << std::endl;
+    }
     /* 至少拟合一半的点数 */
-    return count > 180;
+    return count > 216;
 }
 
+/* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
