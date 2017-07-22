@@ -11,8 +11,15 @@
 #include <math.h>
 
 using namespace cv;
+typedef struct Circle {
+    Point2f  center;
+    int radius;
+    double score;
+};
+bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles);
+void remove_duplicates(Circle circles[], int num);
 
-bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy);
 void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
     short acc_dx = 0, acc_dy = 0;         //accumulators
@@ -40,7 +47,7 @@ void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
 }
 
 
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins)
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles)
 {
     int radiusRange = maxRadius - minRadius;
     int HEIGHT = img_data.rows;
@@ -142,21 +149,29 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 //    std::cout << "count: " << count << std::endl;
 
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
+    int j = 0;
     for(int i = 0; i < number_of_best_cirles; i++) {
 //    for(int i = 0; i < 4; i++) {
-        int lineThickness = 2;
-        int lineType = 10;
-        int shift = 0;
+//        int lineThickness = 2;
+//        int lineType = 10;
+//        int shift = 0;
         int xCoord = bestCircles[i].x;
         int yCoord = bestCircles[i].y;
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
+        double score;
 //        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
-        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy)) {
-            circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
+        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy, &score)) {
+            Circle circle;
+            circle.center = center;
+            circle.radius = radius;
+            circle.score = score;
+            circles[j++] = circle;
+//            circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
         }
     }
 
+    *num_circles = j;
     /* free H */
     for (int i = 0; i < HEIGHT; ++i) {
         for (int j = 0; j < WIDTH; ++j) {
@@ -210,9 +225,34 @@ int main( int argc, char** argv )
 //    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
 //    hough(mag, dist, dx, dy, 10, 10, 75, 20, h_acc, image);
     int step = width / 50;
+
+    Circle circles[20];
+    Circle total_circles[100];
+    int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
-        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image);
+        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image, circles, &num_circles);
+        for (int i = 0; i < num_circles; ++i) {
+            total_circles[num_total_circles++] = circles[i];
+        }
     }
+    int j = 0;
+    remove_duplicates(total_circles, num_total_circles);
+    for(int i = 0; i < num_total_circles; i++) {
+        int lineThickness = 2;
+        int lineType = 10;
+        int shift = 0;
+        int xCoord = total_circles[i].center.x;
+        int yCoord = total_circles[i].center.y;
+        int radius = total_circles[i].radius;
+        Point2f center(xCoord, yCoord);
+        double score = total_circles[i].score;
+        if (radius != 0) {
+            circle(image, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
+            j++;
+        }
+    }
+    std::cout << "valid circle: " << j << std::endl;
+
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
@@ -238,7 +278,7 @@ int main( int argc, char** argv )
 }
 
 /* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
-bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
+bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
 {
 //    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
 //                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
@@ -265,11 +305,47 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
             count++;
         }
     }
+    *score = 1.0 * count / 360;
+    /* 拟合60%的点 */
     if (count > 216) {
-        std::cout << "count: " << "score: " << 1.0 * count / 360 << count << std::endl;
+        std::cout << "count: " << "score: " << *score << count << std::endl;
     }
     /* 至少拟合一半的点数 */
-    return count > 216;
+    return count > 180;
 }
 
 /* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
+void remove_duplicates(Circle circles[], int num)
+{
+    for (int i = 0; i < num; ++i) {
+        for (int j = i + 1; j < num; ++j) {
+            if (circles[i].radius == 0)
+                continue;
+            int x0, y0, r0, x1, y1, r1;
+            double s0, s1;
+            x0 = circles[i].center.x;
+            y0 = circles[i].center.y;
+            x1 = circles[j].center.x;
+            y1 = circles[j].center.y;
+
+            r0 = circles[i].radius;
+            r1 = circles[j].radius;
+
+            s0 = circles[i].score;
+            s1 = circles[j].score;
+            if ((abs(x0 - x1) < 5 && abs(y0 - y1) < 5) && abs(r0 - r1) < 5) {
+                if (s0 > s1) {
+                    circles[j].center.x = 0;
+                    circles[j].center.y = 0;
+                    circles[j].radius = 0;
+                    circles[j].score = 0;
+                } else {
+                    circles[i].center.x = 0;
+                    circles[i].center.y = 0;
+                    circles[i].radius = 0;
+                    circles[i].score = 0;
+                }
+            }
+        }
+    }
+}
