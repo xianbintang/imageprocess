@@ -98,7 +98,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     }
 
 
-    Point3f bestCircles[20];
+    Point3f bestCircles[200];
     int number_of_best_cirles = 0;
 
     //compute optimal circles
@@ -194,8 +194,8 @@ int main( int argc, char** argv )
     //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
     TimeTracker tt;
     tt.start();
-    hough(mag, dist, dx, dy, 8, 10, 150, 20, h_acc, image);
-    hough(mag, dist, dx, dy, 8, 3, 35, 20, h_acc, image);
+    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
+    hough(mag, dist, dx, dy, 5, 3, 35, 20, h_acc, image);
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
     tt.stop();
     std::cout << "time: " << tt.duration() << std::endl;
@@ -227,7 +227,7 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
 //                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
 //                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
     int count = 0;
-    std::cout << "\nis it a circle? " << std::endl;
+//    std::cout << "\nis it a circle? " << std::endl;
     for (int i = -180; i < 180; i += 1) {
         double angle = 3.14159265f * i / 180;
         int x0 = (int)round(p.x + radius * cos(angle));
@@ -238,13 +238,13 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy)
 //        double radial_direction = atan2f(sdyv, sdxv);
         double radial_direction = dist.at<float>(y0, x0);
 
-        printf("%lf %lf \n", angle, radial_direction);
+//        printf("%lf %lf \n", angle, radial_direction);
         /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52 */
         if (fabs(angle - radial_direction) < 0.52) {
             count++;
         }
     }
-    std::cout << "count: " << count << std::endl;
+//    std::cout << "count: " << count << std::endl;
     /* 至少拟合一半的点数 */
     return count > 180;
 }
