@@ -37,7 +37,7 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
         for(int j=0; j<img.cols; j++) {
             acc_dx = (short)sdx.at<short>(i, j);
             acc_dy = (short)sdy.at<short>(i, j);
-            mag.at<float>(i,j) = (sqrtf(acc_dy*acc_dy + acc_dx*acc_dx)) > 100 ? 255 : 0;
+            mag.at<uchar>(i,j) = (uchar)(sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 100 ? 255 : 0;
             dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }
@@ -90,16 +90,19 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             if (x < 0)
                 continue;
             // printf("data point : %f\n", img_data.at<float>(y,x));
-            if( (float) img_data.at<float>(y,x) > 250.0 )  //threshold image
+            if( img_data.at<uchar>(y,x) > 250 )  //threshold image
             {
+                double theta = dist.at<float>(y,x);
+                double cos_theta = cos(theta);
+                double sin_theta = sin(theta);
                 for (int r=minRadius; r< maxRadius; r++)
                 {
-
-                    double theta = dist.at<float>(y,x);
-                    int x0 = round(x + r * cos(theta));
-                    int x1 = round(x - r * cos(theta));
-                    int y0 = round(y + r * sin(theta));
-                    int y1 = round(y - r * sin(theta));
+                    double r_cos_theta = r * cos_theta;
+                    double r_sin_theta = r * sin_theta;
+                    int x0 = (x + r_cos_theta);
+                    int x1 = (x - r_cos_theta);
+                    int y0 = (y + r_sin_theta);
+                    int y1 = (y - r_sin_theta);
 
 
                     inc_if_inside(H, x0 - regionx, y0 - regiony, HEIGHT, WIDTH, r - minRadius);
@@ -216,7 +219,7 @@ int main( int argc, char** argv )
 
     dx.create(img_grey.rows, img_grey.cols, CV_16SC1);
     dy.create(img_grey.rows, img_grey.cols, CV_16SC1);
-    mag.create(img_grey.rows, img_grey.cols, CV_32FC1);
+    mag.create(img_grey.rows, img_grey.cols, CV_8UC1);
     dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
 
     sobel(img_grey, dx, dy, mag, dist);
