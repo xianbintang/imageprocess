@@ -21,8 +21,8 @@ typedef struct Region{
     int radius;
 }Region;
 bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles);
 void remove_duplicates(Circle circles[], int num);
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region);
 
 void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
@@ -52,12 +52,16 @@ void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
 
 
 void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,\
- double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles)
+ double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region)
 {
     int radiusRange = maxRadius - minRadius;
     int HEIGHT = img_data.rows;
     int WIDTH = img_data.cols;
     int DEPTH = radiusRange;
+    int regionx = region.center.x - region.radius;
+    int regiony = region.center.y - region.radius;
+    int region_height = region.radius * 2;
+    int region_width = region.radius * 2;
 
     int ***H;
 
@@ -75,9 +79,9 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
-    for(int y=0;y<img_data.rows;y++)
+    for(int y=regiony; y < img_data.rows && y<region_height + regiony; y++)
     {
-        for(int x=0;x<img_data.cols;x++)
+        for(int x=regionx; x<img_data.cols && x < region_width + regionx; x++)
         {
             // printf("data point : %f\n", img_data.at<float>(y,x));
             if( (float) img_data.at<float>(y,x) > 250.0 )  //threshold image
@@ -235,9 +239,14 @@ int main( int argc, char** argv )
 
     Circle circles[20];
     Circle total_circles[100];
+    Region region;
+    region.center.x = 124;
+    region.center.y = 233;
+    region.radius = 100;
+
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
-        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image, circles, &num_circles);
+        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
             total_circles[num_total_circles++] = circles[i];
         }
