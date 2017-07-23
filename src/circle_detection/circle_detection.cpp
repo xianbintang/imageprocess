@@ -55,18 +55,20 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
  double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region)
 {
     int radiusRange = maxRadius - minRadius;
-    int HEIGHT = img_data.rows;
-    int WIDTH = img_data.cols;
-    int DEPTH = radiusRange;
     int regionx = region.center.x - region.radius;
     int regiony = region.center.y - region.radius;
     int region_height = region.radius * 2;
     int region_width = region.radius * 2;
 
+    int HEIGHT = region_height;
+    int WIDTH = region_width;
+    int DEPTH = radiusRange;
+
     int ***H;
 
     // Allocate memory
     /* 这里没必要设置depth为最大半径，只需要设置radiusRange范围这么大的depth即可 */
+    /* H的高宽设置成外接矩形的高宽 */
     H = new int**[HEIGHT];
     for (int i = 0; i < HEIGHT; ++i) {
         H[i] = new int*[WIDTH];
@@ -81,24 +83,29 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 
     for(int y=regiony; y < img_data.rows && y<region_height + regiony; y++)
     {
+        if (y < 0)
+            continue;
         for(int x=regionx; x<img_data.cols && x < region_width + regionx; x++)
         {
+            if (x < 0)
+                continue;
             // printf("data point : %f\n", img_data.at<float>(y,x));
             if( (float) img_data.at<float>(y,x) > 250.0 )  //threshold image
             {
                 for (int r=minRadius; r< maxRadius; r++)
                 {
 
-                    int x0 = round(x + r * cos(dist.at<float>(y,x)) );
-                    int x1 = round(x - r * cos(dist.at<float>(y,x)) );
-                    int y0 = round(y + r * sin(dist.at<float>(y,x)) );
-                    int y1 = round(y - r * sin(dist.at<float>(y,x)) );
+                    double theta = dist.at<float>(y,x);
+                    int x0 = round(x + r * cos(theta));
+                    int x1 = round(x - r * cos(theta));
+                    int y0 = round(y + r * sin(theta));
+                    int y1 = round(y - r * sin(theta));
 
 
-                    inc_if_inside(H,x0,y0,HEIGHT, WIDTH, r - minRadius);
+                    inc_if_inside(H, x0 - regionx, y0 - regiony, HEIGHT, WIDTH, r - minRadius);
                     // inc_if_inside(H,x0,y1,HEIGHT, WIDTH, r);
                     // inc_if_inside(H,x1,y0,HEIGHT, WIDTH, r);
-                    inc_if_inside(H,x1,y1,HEIGHT, WIDTH, r - minRadius);
+                    inc_if_inside(H, x1 - regionx, y1 - regiony, HEIGHT, WIDTH, r - minRadius);
                 }
             }
         }
@@ -108,7 +115,10 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
-                h_acc.at<uchar>(y0,x0) +=  (uchar)H[y0][x0][r - minRadius];// > 1 ? 255 : 0;
+                int x = x0 + regionx;
+                int y = y0 + regiony;
+                if (x > 0 && x < img_data.cols && y > 0 && y < img_data.rows)
+                    h_acc.at<uchar>(y, x) +=  (uchar)H[y0][x0][r - minRadius];// > 1 ? 255 : 0;
                 // printf("h : %d", H[y0][x0][r]);
             }
         }
@@ -156,7 +166,6 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             }
         }
     }
-//    std::cout << "count: " << count << std::endl;
 
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     int j = 0;
@@ -165,8 +174,8 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 //        int lineThickness = 2;
 //        int lineType = 10;
 //        int shift = 0;
-        int xCoord = bestCircles[i].x;
-        int yCoord = bestCircles[i].y;
+        int xCoord = bestCircles[i].x + regionx;
+        int yCoord = bestCircles[i].y + regiony;
         int radius = bestCircles[i].z;
         Point2f center(xCoord, yCoord);
         double score;
@@ -240,19 +249,27 @@ int main( int argc, char** argv )
     Circle circles[20];
     Circle total_circles[100];
     Region region;
-    region.center.x = 124;
-    region.center.y = 233;
+//    region.center.x = 1.0 / 2 * image.cols;
+//    region.center.y = 1.0 / 2 * image.rows;
+//    region.radius = 1.0 / 2 * image.cols;
+
+
+    region.center.x = 270;
+    region.center.y = 380;
     region.radius = 100;
 
     int num_circles = 0, num_total_circles = 0;
-    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
-        hough(mag, dist, dx, dy, 5, r, r + step, 20, h_acc, image, circles, &num_circles, region);
+//    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
+    for (int r = 70; r < (int)(1.0 / 2 * width - 10); r += 1000) {
+        hough(mag, dist, dx, dy, 10, r + 5, r + 15, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
             total_circles[num_total_circles++] = circles[i];
         }
     }
     int j = 0;
     remove_duplicates(total_circles, num_total_circles);
+    tt.stop();
+    std::cout << "time: " << tt.duration() << std::endl;
     for(int i = 0; i < num_total_circles; i++) {
         int lineThickness = 2;
         int lineType = 10;
@@ -271,8 +288,6 @@ int main( int argc, char** argv )
     std::cout << "valid circle: " << j << std::endl;
 
 //    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
-    tt.stop();
-    std::cout << "time: " << tt.duration() << std::endl;
 
     // normalize(h_acc, h_out, 0, 255, NORM_MINMAX, -1, Mat());
     // threshold(h_acc,h_out, 200,255,THRESH_TOZERO);
