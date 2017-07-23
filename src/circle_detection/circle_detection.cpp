@@ -15,7 +15,11 @@ typedef struct Circle {
     Point2f  center;
     int radius;
     double score;
-};
+}Circle ;
+typedef struct Region{
+    Point2f  center;
+    int radius;
+}Region;
 bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
 void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles);
 void remove_duplicates(Circle circles[], int num);
@@ -47,16 +51,18 @@ void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
 }
 
 
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles)
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,\
+ double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles)
 {
     int radiusRange = maxRadius - minRadius;
     int HEIGHT = img_data.rows;
     int WIDTH = img_data.cols;
-    int DEPTH = maxRadius;
+    int DEPTH = radiusRange;
 
     int ***H;
 
     // Allocate memory
+    /* 这里没必要设置depth为最大半径，只需要设置radiusRange范围这么大的depth即可 */
     H = new int**[HEIGHT];
     for (int i = 0; i < HEIGHT; ++i) {
         H[i] = new int*[WIDTH];
@@ -85,10 +91,10 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
                     int y1 = round(y - r * sin(dist.at<float>(y,x)) );
 
 
-                    inc_if_inside(H,x0,y0,HEIGHT, WIDTH, r);
+                    inc_if_inside(H,x0,y0,HEIGHT, WIDTH, r - minRadius);
                     // inc_if_inside(H,x0,y1,HEIGHT, WIDTH, r);
                     // inc_if_inside(H,x1,y0,HEIGHT, WIDTH, r);
-                    inc_if_inside(H,x1,y1,HEIGHT, WIDTH, r);
+                    inc_if_inside(H,x1,y1,HEIGHT, WIDTH, r - minRadius);
                 }
             }
         }
@@ -98,7 +104,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
-                h_acc.at<uchar>(y0,x0) +=  (uchar)H[y0][x0][r];// > 1 ? 255 : 0;
+                h_acc.at<uchar>(y0,x0) +=  (uchar)H[y0][x0][r - minRadius];// > 1 ? 255 : 0;
                 // printf("h : %d", H[y0][x0][r]);
             }
         }
@@ -113,7 +119,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
-                if(H[y0][x0][r] > threshold){
+                if(H[y0][x0][r - minRadius] > threshold){
 //                    std::cout << H[y0][x0][r]<< std::endl;
                     count++;
                     Point3f circle(x0, y0, r);
@@ -130,7 +136,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
                         /* 找到领域内得到分数最高的圆 */
                         if(abs(xCoord - x0) < distance && abs(yCoord - y0) < distance) {
                             /* 如果在领域附近而且分更高，则更新之 */
-                            if(H[y0][x0][r] > H[yCoord][xCoord][radius]) {
+                            if(H[y0][x0][r - minRadius] > H[yCoord][xCoord][radius - minRadius]) {
                                 bestCircles[i] = circle;
                             }
                             /* 如果在领域附近但是分低，则不管，由于i此时不等于bestCircles，所以不会将其加入为新圆 */
@@ -224,8 +230,8 @@ int main( int argc, char** argv )
     /* 半径最大为1/2 * width, 最小为10像素， step为10像素 */
 //    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
 //    hough(mag, dist, dx, dy, 10, 10, 75, 20, h_acc, image);
-//    int step = width / 20;
-    int step = 10;
+    int step = width / 30;
+//    int step = 10;
 
     Circle circles[20];
     Circle total_circles[100];
@@ -347,4 +353,9 @@ void remove_duplicates(Circle circles[], int num)
             }
         }
     }
+}
+
+void do_detect(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, Region region, int target_radius, int low_threshold, int high_threshold)
+{
+
 }
