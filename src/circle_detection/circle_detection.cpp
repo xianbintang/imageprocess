@@ -37,14 +37,14 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
         for(int j=0; j<img.cols; j++) {
             acc_dx = (short)sdx.at<short>(i, j);
             acc_dy = (short)sdy.at<short>(i, j);
-            mag.at<uchar>(i,j) = (uchar)(sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 100 ? 255 : 0;
+            mag.at<uchar>(i,j) = (sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 220? 255 : 0;
             dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }
     }
 }
 
-void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
+inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
 {
     if (x>0 && x<width && y> 0 && y<height)
         H[y][x][r]++;
@@ -81,6 +81,8 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
+    TimeTracker t1;
+    t1.start();
     for(int y=regiony; y < img_data.rows && y<region_height + regiony; y++)
     {
         if (y < 0)
@@ -193,6 +195,8 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
+    t1.stop();
+    std::cout << "duration: " << t1.duration() << std::endl;
     *num_circles = j;
     /* free H */
     for (int i = 0; i < HEIGHT; ++i) {
@@ -210,7 +214,7 @@ int main( int argc, char** argv )
     char* imageName = argv[1];
 
     Mat image, img_grey, img_grey1;     //input mat
-    Mat dx,dy,mag,dist;
+    Mat dx,dy,mag,dist, edge;
     Mat dx_out, dy_out, dis_out;  //final output mat
     Mat h_acc, h_out;       //hough space matricies
 
@@ -221,26 +225,22 @@ int main( int argc, char** argv )
     dy.create(img_grey.rows, img_grey.cols, CV_16SC1);
     mag.create(img_grey.rows, img_grey.cols, CV_8UC1);
     dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
-
-    sobel(img_grey, dx, dy, mag, dist);
-
-    //normalize arrays with max and min values of 255 and 0
-    normalize(dx, dx_out, 0, 255, NORM_MINMAX, -1, Mat());
-    normalize(dy, dy_out, 0, 255, NORM_MINMAX, -1, Mat());
-    normalize(dist, dis_out, 0, 255, NORM_MINMAX, -1, Mat());
-
-    // double H_h = sqrt(2.0) * (double) (mag.rows>mag.cols ? mag.rows : mag.cols); //-r -> +r
-    // double H_w = 180;
+    edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
 
     h_acc.create(mag.rows, mag.cols, CV_8UC1);
-    // threshold(h_acc,h_out,0,255,THRESH_TOZERO);
-    // threshold(h_out,h_acc,0,255,THRESH_TOZERO);
+    TimeTracker tt;
+    tt.start();
+    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
+    sobel(img_grey, dx, dy, mag, dist);
+//    GaussianBlur(img_grey, img_grey, Size(5, 5), 2, 2);
+//    Canny(img_grey, edge, 30, 170, 3);
+//    imshow("edge", edge);
 
-    // medianBlur(mag,mag,1);
-    //mag,dist,thresh,minRad,maxRad,Dist-circles,output_Hspace, final_result
+    //normalize arrays with max and min values of 255 and 0
     int width = img_grey.cols;
     int height = img_grey.rows;
-    TimeTracker tt;
+    tt.stop();
+    std::cout << "half: " << tt.duration() << std::endl;
     tt.start();
     /* 需要遍历所有可能的半径组合来检测出所有的圆，这样才能检测出同心圆 */
     /* 半径最大为1/2 * width, 最小为10像素， step为10像素 */
@@ -257,14 +257,14 @@ int main( int argc, char** argv )
 //    region.radius = 1.0 / 2 * image.cols;
 
 
-    region.center.x = 270;
-    region.center.y = 380;
-    region.radius = 100;
+    region.center.x = 247;
+    region.center.y = 243;
+    region.radius = 230;
 
     int num_circles = 0, num_total_circles = 0;
 //    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
-    for (int r = 70; r < (int)(1.0 / 2 * width - 10); r += 1000) {
-        hough(mag, dist, dx, dy, 10, r + 5, r + 15, 20, h_acc, image, circles, &num_circles, region);
+    for (int r = 200; r < (int)(1.0 / 2 * width - 10); r += 1000) {
+        hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
             total_circles[num_total_circles++] = circles[i];
         }
@@ -295,12 +295,16 @@ int main( int argc, char** argv )
     // normalize(h_acc, h_out, 0, 255, NORM_MINMAX, -1, Mat());
     // threshold(h_acc,h_out, 200,255,THRESH_TOZERO);
 
+    normalize(dx, dx_out, 0, 255, NORM_MINMAX, -1, Mat());
+    normalize(dy, dy_out, 0, 255, NORM_MINMAX, -1, Mat());
+    normalize(dist, dis_out, 0, 255, NORM_MINMAX, -1, Mat());
     //save images
     Mat dis_show;
     Mat dx_show, dy_show;
     convertScaleAbs(dis_out, dis_show);
     convertScaleAbs(dx_out, dx_show);
     convertScaleAbs(dy_out, dy_show);
+    imshow( "gray", img_grey);
     imshow( "dx.jpg", dx_show);
     imshow( "dy.jpg", dy_show);
     imshow( "mag.jpg", mag );
