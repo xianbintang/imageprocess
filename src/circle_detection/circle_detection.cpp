@@ -83,6 +83,9 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 
     TimeTracker t1;
     t1.start();
+    TimeTracker t2;
+    t2.start();
+    int ct = 0;
     for(int y=regiony; y < img_data.rows && y<region_height + regiony; y++)
     {
         if (y < 0)
@@ -94,6 +97,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             // printf("data point : %f\n", img_data.at<float>(y,x));
             if( img_data.at<uchar>(y,x) > 250 )  //threshold image
             {
+                ct++;
                 double theta = dist.at<float>(y,x);
                 double cos_theta = cos(theta);
                 double sin_theta = sin(theta);
@@ -115,7 +119,10 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             }
         }
     }
-
+    std::cout << "ct: " << ct << std::endl;
+    t2.stop();
+    std::cout << "duration t2: " << t2.duration() << std::endl;
+#if 0
     //create 2D image by summing values of the radius dimension
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
@@ -128,6 +135,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             }
         }
     }
+#endif
 
 
     Point3f bestCircles[200];
@@ -135,6 +143,8 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 
     //compute optimal circles
     int count = 0;
+    TimeTracker t3;
+    t3.start();
     for(int y0 = 0; y0 < HEIGHT; y0++) {
         for(int x0 = 0; x0 < WIDTH; x0++) {
             for(int r = minRadius; r < maxRadius; r++) {
@@ -172,6 +182,9 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
+    t3.stop();
+    std::cout << "duration t3: " << t3.duration() << std::endl;
+    std::cout << "count: " << count << std::endl;
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     int j = 0;
     for(int i = 0; i < number_of_best_cirles; i++) {
@@ -230,7 +243,7 @@ int main( int argc, char** argv )
     h_acc.create(mag.rows, mag.cols, CV_8UC1);
     TimeTracker tt;
     tt.start();
-    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
+//    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
     sobel(img_grey, dx, dy, mag, dist);
 //    GaussianBlur(img_grey, img_grey, Size(5, 5), 2, 2);
 //    Canny(img_grey, edge, 30, 170, 3);
@@ -263,7 +276,7 @@ int main( int argc, char** argv )
 
     int num_circles = 0, num_total_circles = 0;
 //    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
-    for (int r = 200; r < (int)(1.0 / 2 * width - 10); r += 1000) {
+    for (int r = 120; r < (int)(1.0 / 2 * width - 10); r += 1000) {
         hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
             total_circles[num_total_circles++] = circles[i];
@@ -284,7 +297,7 @@ int main( int argc, char** argv )
         double score = total_circles[i].score;
         if (radius != 0) {
             circle(image, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
-            std::cout << "count: " << "score: " << score << std::endl;
+            std::cout << "center: " << center <<  "radius: " << radius << " count: " << "score: " << score << std::endl;
             j++;
         }
     }
