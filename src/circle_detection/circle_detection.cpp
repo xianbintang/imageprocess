@@ -51,8 +51,7 @@ inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r 
 }
 
 
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,\
- double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region)
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region)
 {
     int radiusRange = maxRadius - minRadius;
     int regionx = region.center.x - region.radius;
@@ -184,11 +183,10 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
 
     t3.stop();
     std::cout << "duration t3: " << t3.duration() << std::endl;
-    std::cout << "count: " << count << std::endl;
+//    std::cout << "count: " << count << std::endl;
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     int j = 0;
     for(int i = 0; i < number_of_best_cirles; i++) {
-//    for(int i = 0; i < 4; i++) {
 //        int lineThickness = 2;
 //        int lineType = 10;
 //        int shift = 0;
@@ -218,7 +216,6 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
         delete H[i];
     }
-
 }
 
 int main( int argc, char** argv )
@@ -275,7 +272,6 @@ int main( int argc, char** argv )
     region.radius = 230;
 
     int num_circles = 0, num_total_circles = 0;
-//    for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += step) {
     for (int r = 120; r < (int)(1.0 / 2 * width - 10); r += 1000) {
         hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
@@ -318,11 +314,11 @@ int main( int argc, char** argv )
     convertScaleAbs(dx_out, dx_show);
     convertScaleAbs(dy_out, dy_show);
     imshow( "gray", img_grey);
-    imshow( "dx.jpg", dx_show);
-    imshow( "dy.jpg", dy_show);
+//    imshow( "dx.jpg", dx_show);
+//    imshow( "dy.jpg", dy_show);
     imshow( "mag.jpg", mag );
-    imshow( "dist.jpg", dis_show);
-    imshow( "h_space.jpg", h_acc);
+//    imshow( "dist.jpg", dis_show);
+//    imshow( "h_space.jpg", h_acc);
 //
     imshow("result.png",image);
     cvWaitKey(-1);
@@ -399,7 +395,10 @@ void remove_duplicates(Circle circles[], int num)
     }
 }
 
-void do_detect(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, Region region, int target_radius, int low_threshold, int high_threshold)
+/*
+ * todo 已经实现了
+ * */
+void do_detect(Mat &img_data,  Mat &dist, Mat &sdx, Mat &sdy, Region region, int target_radius, int low_threshold, int high_threshold)
 {
 
 }
