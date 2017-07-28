@@ -44,10 +44,17 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
     }
 }
 
-inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r )
+inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r, int candidates[][3], int *numof_candidates, int threshold, int minRadius)
 {
-    if (x>0 && x<width && y> 0 && y<height)
+    if (x>0 && x<width && y> 0 && y<height) {
         H[y][x][r]++;
+        if (H[y][x][r] > threshold) {
+            candidates[*numof_candidates][0] = y;
+            candidates[*numof_candidates][1] = x;
+            candidates[*numof_candidates][2] = r + minRadius;
+            *numof_candidates = *numof_candidates + 1;
+        }
+    }
 }
 
 
@@ -80,23 +87,22 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
+    int candidates[1000][3];
+    int numof_candidates = 0;
+    memset(candidates, 0, sizeof(int) * 1000 * 3);
     TimeTracker t1;
     t1.start();
     TimeTracker t2;
     t2.start();
     int ct = 0;
-    for(int y=regiony; y < img_data.rows && y<region_height + regiony; y++)
+    for(int y=regiony; y > 0 && y < img_data.rows && y<region_height + regiony; y++)
     {
-        if (y < 0)
-            continue;
-        for(int x=regionx; x<img_data.cols && x < region_width + regionx; x++)
+        for(int x=regionx; x > 0 && x<img_data.cols && x < region_width + regionx; x++)
         {
-            if (x < 0)
-                continue;
             // printf("data point : %f\n", img_data.at<float>(y,x));
             if( img_data.at<uchar>(y,x) > 250 )  //threshold image
             {
-                ct++;
+//                ct++;
                 double theta = dist.at<float>(y,x);
                 double cos_theta = cos(theta);
                 double sin_theta = sin(theta);
@@ -110,15 +116,16 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
                     int y1 = (y - r_sin_theta);
 
 
-                    inc_if_inside(H, x0 - regionx, y0 - regiony, HEIGHT, WIDTH, r - minRadius);
+                    inc_if_inside(H, x0 - regionx, y0 - regiony, HEIGHT, WIDTH, r - minRadius, candidates, &numof_candidates, threshold, minRadius);
                     // inc_if_inside(H,x0,y1,HEIGHT, WIDTH, r);
                     // inc_if_inside(H,x1,y0,HEIGHT, WIDTH, r);
-                    inc_if_inside(H, x1 - regionx, y1 - regiony, HEIGHT, WIDTH, r - minRadius);
+                    inc_if_inside(H, x1 - regionx, y1 - regiony, HEIGHT, WIDTH, r - minRadius, candidates, &numof_candidates, threshold, minRadius);
                 }
             }
         }
     }
-    std::cout << "ct: " << ct << std::endl;
+//    std::cout << "ct: " << ct << std::endl;
+//    std::cout << " numof candidates: " <<  numof_candidates << std::endl;
     t2.stop();
     std::cout << "duration t2: " << t2.duration() << std::endl;
 #if 0
@@ -144,46 +151,47 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
     int count = 0;
     TimeTracker t3;
     t3.start();
-    for(int y0 = 0; y0 < HEIGHT; y0++) {
-        for(int x0 = 0; x0 < WIDTH; x0++) {
-            for(int r = minRadius; r < maxRadius; r++) {
-                if(H[y0][x0][r - minRadius] > threshold){
-//                    std::cout << H[y0][x0][r]<< std::endl;
-                    count++;
-                    Point3f circle(x0, y0, r);
-                    int i;
-                    /*
-                     * 检查到一个满足阈值的圆后先与原来的圆判断，是不是在原来的圆附近
-                     * 如果在原来的bestcircles附近，那么就更新领域内最大值。
-                     * 如果不在附近则退出循环
-                     * */
-                    for(i = 0; i < number_of_best_cirles; i++) {
-                        int xCoord = bestCircles[i].x;
-                        int yCoord = bestCircles[i].y;
-                        int radius = bestCircles[i].z;
-                        /* 找到领域内得到分数最高的圆 */
-                        if(abs(xCoord - x0) < distance && abs(yCoord - y0) < distance) {
-                            /* 如果在领域附近而且分更高，则更新之 */
-                            if(H[y0][x0][r - minRadius] > H[yCoord][xCoord][radius - minRadius]) {
-                                bestCircles[i] = circle;
-                            }
-                            /* 如果在领域附近但是分低，则不管，由于i此时不等于bestCircles，所以不会将其加入为新圆 */
-                            break;
-                        }
-                    }
-                    /* 如果新的这个圆不是在原来的圆附近，那么将这个新的圆加入vector中 */
-                    if(i == number_of_best_cirles){
-                        bestCircles[i] = circle;
-                        number_of_best_cirles++;
-                    }
+//    for(int y0 = 0; y0 < HEIGHT; y0++) {
+//        for(int x0 = 0; x0 < WIDTH; x0++) {
+//            for(int r = minRadius; r < maxRadius; r++) {
+    for (int k = 0; k < numof_candidates; ++k) {
+        int y0 = candidates[k][0];
+        int x0 = candidates[k][1];
+        int r = candidates[k][2];
+
+        count++;
+        Point3f circle(x0, y0, r);
+        int i;
+        /*
+         * 检查到一个满足阈值的圆后先与原来的圆判断，是不是在原来的圆附近
+         * 如果在原来的bestcircles附近，那么就更新领域内最大值。
+         * 如果不在附近则退出循环
+         * */
+        for(i = 0; i < number_of_best_cirles; i++) {
+            int xCoord = bestCircles[i].x;
+            int yCoord = bestCircles[i].y;
+            int radius = bestCircles[i].z;
+            /* 找到领域内得到分数最高的圆 */
+            if(abs(xCoord - x0) < distance && abs(yCoord - y0) < distance) {
+                /* 如果在领域附近而且分更高，则更新之 */
+                if(H[y0][x0][r - minRadius] > H[yCoord][xCoord][radius - minRadius]) {
+                    bestCircles[i] = circle;
                 }
+                /* 如果在领域附近但是分低，则不管，由于i此时不等于bestCircles，所以不会将其加入为新圆 */
+                break;
             }
+        }
+        /* 如果新的这个圆不是在原来的圆附近，那么将这个新的圆加入vector中 */
+        if(i == number_of_best_cirles){
+            bestCircles[i] = circle;
+            number_of_best_cirles++;
         }
     }
 
     t3.stop();
     std::cout << "duration t3: " << t3.duration() << std::endl;
 //    std::cout << "count: " << count << std::endl;
+//    std::cout << "num of best: " << number_of_best_cirles << "circle: " << bestCircles[0] << std::endl;
     /* 此时能够保证bestCircles中的是所有在各自领域内的最高分的圆。如何得到 */
     int j = 0;
     for(int i = 0; i < number_of_best_cirles; i++) {
