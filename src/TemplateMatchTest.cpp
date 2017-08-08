@@ -151,7 +151,7 @@ int main(int argc, char ** argv) {
 
 //    tg = ICreateMat(76, 144, U8C1);
 //    resumeIMat("images/testImages/Tgray.txt", tg);
-    for (int i = 0; i < 60; ++i) {
+    for (int i = -29; i < 30; ++i) {
         IMat *matDst;
         rect[0].x = 8;
         rect[0].y = 8;
@@ -167,7 +167,7 @@ int main(int argc, char ** argv) {
 
         RotateGrayImage(*tg, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
-        CreateGeoMatchModel(&tpls[4][i], matDst, 30, 150, rect);
+        CreateGeoMatchModel(&tpls[4][i + 29], matDst, 30, 150, rect);
     }
     char *filenames[5] = {
     "tpls/tpls4/cordinates.txt",
@@ -177,10 +177,10 @@ int main(int argc, char ** argv) {
     "tpls/tpls4/tplArgs.txt"};
 
 //    saveTpls(tpls[4], 60, filenames);
-    ResumeTpls(tpls[4], 60, filenames);
+//    ResumeTpls(tpls[4], 60, filenames);
     //god
 
-    for (int i = 0; i < 60; ++i) {
+    for (int i = -29; i < 30; ++i) {
         IMat *matDst;
         rect[0].x = 3;
         rect[0].y = 3;
@@ -196,7 +196,7 @@ int main(int argc, char ** argv) {
 
         RotateGrayImage(*t4, &matDst, i, rect);
 //        deflatRect(rect, 8, 8);
-        CreateGeoMatchModel(&tpls[3][i], matDst, 30, 150, rect);
+        CreateGeoMatchModel(&tpls[3][i + 29], matDst, 30, 150, rect);
 //        std::cout << tpls[3][i].noOfCordinates << std::endl;
     }
     std::cout << tpls[3][0].noOfCordinates <<std::endl;
@@ -208,7 +208,7 @@ int main(int argc, char ** argv) {
     "tpls/tpls3/tplArgs.txt"};
 
 //    saveTpls(tpls[3], 60, filenames1);
-    ResumeTpls(tpls[3], 60, filenames1);
+//    ResumeTpls(tpls[3], 60, filenames1);
 //    for (int i = 0; i < 60; ++i) {
 //        IMat *matDst;
 //        RotateGrayImage(*t3, &matDst, i, rect);

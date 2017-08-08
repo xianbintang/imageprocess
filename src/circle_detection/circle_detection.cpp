@@ -38,6 +38,9 @@ void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
             acc_dx = (short)sdx.at<short>(i, j);
             acc_dy = (short)sdy.at<short>(i, j);
             mag.at<uchar>(i,j) = (sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 220? 255 : 0;
+            /*
+             * TODO dist可以利用查表实现，如果acc_dy和acc_dx能够归一化到8位即可
+             * */
             dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }

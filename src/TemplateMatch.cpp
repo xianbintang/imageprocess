@@ -533,15 +533,15 @@ void FindTemplateInPyramid(TemplateMatch tpls[][60], IMat *images[], IPoint *pos
     IPoint point, where;
 
     Rect region4;
-    region4.x = 50;
-    region4.y = 90;
+    region4.x = 60;
+    region4.y = 80;
     region4.width = 160;
-    region4.height = 100;
+    region4.height = 90;
     Rect region3;
-    region3.x = 25;
-    region3.y = 45;
+    region3.x = 30;
+    region3.y = 40;
     region3.width = 80;
-    region3.height = 50;
+    region3.height = 45;
     double degree;
     double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.8, 0.995, &point, 30, &degree, region3);
 

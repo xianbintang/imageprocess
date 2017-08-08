@@ -43,7 +43,7 @@ target_link_libraries(GeoMatch ${OpenCV_LIBS})
 add_executable(FeaturesMatch src/FeaturesMatch.cpp)
 target_link_libraries(FeaturesMatch ${OpenCV_LIBS})
 
-add_executable(RotateImage1 src/RotateImage.cpp)
+add_executable(RotateImage1 src/RotateImage.cpp src/IMatImpl.cpp src/sobel.cpp)
 target_link_libraries(RotateImage1 ${OpenCV_LIBS})
 
 
