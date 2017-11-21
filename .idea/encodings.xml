@@ -3,5 +3,6 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/include/hi_type.h" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/Hu.cpp" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/test/fromVM/Hu.cpp" charset="GB2312" />
   </component>
 </project>

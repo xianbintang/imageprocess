@@ -213,11 +213,11 @@ public:
         cvShowImage("result", SearchImg);
     }
 
-    void printMoments(char label[] ,const std::vector<double> huMoments)
+    void printMoments()
     {
 //        std::cout<<label<<std::endl<<setprecision(50);;
-        for(unsigned int i = 0; i < huMoments.size(); ++i){
-            std::cout<<i+1<<" = "<<huMoments[i]<<std::endl;
+        for(unsigned int i = 0; i < templateHuMoments.size(); ++i){
+            std::cout<<i+1<<" = "<<templateHuMoments[i]<<std::endl;
         }
     }
 

@@ -34,8 +34,8 @@ target_link_libraries(KOYOMain ${OpenCV_LIBS})
 add_executable(UnionTest src/GetUnions.cpp utils/utils.cpp )
 target_link_libraries(UnionTest ${OpenCV_LIBS})
 
-add_executable(HuMatch src/Hu.cpp)
-target_link_libraries(HuMatch ${OpenCV_LIBS})
+add_executable(HuMatch1 src/Hu.cpp)
+target_link_libraries(HuMatch1 ${OpenCV_LIBS})
 
 add_executable(GeoMatch src/GeoMatchTest.cpp src/GeoMatch.cpp src/CommandParser.cpp src/RotateImage.cpp utils/utils.cpp)
 target_link_libraries(GeoMatch ${OpenCV_LIBS})
@@ -74,3 +74,8 @@ target_link_libraries(circle_detection ${OpenCV_LIBS})
 
 add_executable(getPoint test/getPoint.cpp)
 target_link_libraries(getPoint ${OpenCV_LIBS})
+
+
+add_executable(HuMatch2 src/hu2.cpp)
+target_link_libraries(HuMatch2 ${OpenCV_LIBS})
+
