@@ -171,9 +171,11 @@ public:
         double maxScore = -99999.9;
         cv::Point p;
 
+        tSize.width += 20;
+        tSize.height = tSize.height + 20;
         TimeTracker tt;
-        for(int i = 0; i < SearchImg->height - tSize.height; i++) {
-            for (int j = 0; j < SearchImg->width - tSize.width; ++j) {
+        for(int i = 0; i < SearchImg->height - tSize.height; i += 30) {
+            for (int j = 0; j < SearchImg->width - tSize.width; j += 30) {
 //                tt.start();
                 std::vector<double> SearchHuMoments2;
 //                SearchHuMoments2.reserve(POINTSMALL);
@@ -183,6 +185,9 @@ public:
                 std::vector<cv::Point> contour;
 //                contour.reserve(POINTSMALL);
                 getROIContour(contour, cv::Rect(j,i,tSize.width,tSize.height));
+                if(contour.size() < searchImgContour.size() / 1.5) {
+                    continue;
+                }
 
 //                std::cout << "ROI Contour: " << contour.size() << std::endl;
 //            std::cout << "size of Contour: " << contour.size() << std::endl;
@@ -195,13 +200,20 @@ public:
 //                std::cout << "Current Score: " << score << std::endl;
 
                 if(score > threshold) {
-                    cvCircle(SearchImg,cv::Point(j, i), 1, cvScalar(255, 255, 255));
+//                    cvCircle(SearchImg,cv::Point(j, i), 1, cvScalar(255, 255, 255));
+                    std::cout << "score: " << score << std::endl;
+                    p.x = j;
+                    p.y = i;
+//                    DrawContours(SearchImg,p, tSize);
+//                    cv::waitKey(0);
                 }
 
                 if (score > maxScore) {
                     maxScore = score;
                     p.x = j;
                     p.y = i;
+//                    DrawContours(SearchImg,p, tSize);
+//                    cv::waitKey(0);
                 }
             }
 
@@ -210,7 +222,6 @@ public:
         std::cout << "Max Score: " << maxScore << std::endl;
         std::cout << "count: " << count << std::endl;
         DrawContours(SearchImg,p, tSize);
-        cvShowImage("result", SearchImg);
     }
 
     void printMoments()
