@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include "TimeTracker.h"
@@ -33,6 +34,7 @@ void rgb2gray(const Mat src, Mat &result)
         result = src;
     }
 
+    threshold(result, result, 120, 255, 0);
 }
 
 void invariantMomentHu(const Mat src, vector<double>& result)
@@ -58,17 +60,21 @@ void invariantMomentHu(const Mat src, vector<double>& result)
     double m11 = 0, m20 = 0, m02 = 0, m30 = 0,
            m03 = 0, m12 = 0, m21 = 0;
 
+    // 这里是针对图像的所有像素，应该改成只用轮廓点的吧
     for( int i = 0; i < src.rows; ++i){
         for( int j = 0; j < src.cols; ++j ){
-            x = j + 1;
-            y = i + 1;
-            m11 += ( x - xbar ) * ( y - ybar ) * src.at<uchar>(i,j) / pow( m00, 2 );
-            m20 += pow( ( x - xbar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2 );
-            m02 += pow( ( y - ybar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2 );
-            m30 += pow( ( x - xbar ), 3 )  * src.at<uchar>(i,j) / pow( m00, 2.5 );
-            m03 += pow( ( y - ybar ), 3 ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
-            m12 += ( x - xbar ) * pow( ( y - ybar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
-            m21 += pow( ( x - xbar ), 2 ) * ( y - ybar ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
+            if (src.at<uchar>(i,j) >= 100) {
+
+                x = j + 1;
+                y = i + 1;
+                m11 += ( x - xbar ) * ( y - ybar ) * src.at<uchar>(i,j) / pow( m00, 2 );
+                m20 += pow( ( x - xbar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2 );
+                m02 += pow( ( y - ybar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2 );
+                m30 += pow( ( x - xbar ), 3 )  * src.at<uchar>(i,j) / pow( m00, 2.5 );
+                m03 += pow( ( y - ybar ), 3 ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
+                m12 += ( x - xbar ) * pow( ( y - ybar ), 2 ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
+                m21 += pow( ( x - xbar ), 2 ) * ( y - ybar ) * src.at<uchar>(i,j) / pow( m00, 2.5 );
+            }
         }
     }
 
@@ -218,22 +224,25 @@ int main(int /*argc*/, char /*argv*/)
     vector<double> huMoments;
 
     TimeTracker tt;
-    Mat g1 = imread("images//KOYO.bmp");
-    rgb2gray(g1, g1);
+    Mat g1 = imread("images//KOYO.bmp", 0);
+//    rgb2gray(g1, g1);
+    Mat result;
+    Canny(g1, result, 150, 220);
     tt.start();
-    invariantMomentHu(g1, huMoments);
+    invariantMomentHu(result, huMoments);
     tt.stop();
     cout << "time: " << tt.duration() << endl;
     printMoments("gambar 1 : " ,huMoments);
 
     namedWindow("gambar1");
-    imshow("gambar1", g1);
+    imshow("gambar1", result);
 
     vector<double> huMoments2;
-    Mat g2 = imread("images/black34.bmp");
-    rgb2gray(g2, g2);
+    Mat g2 = imread("images/black34.bmp", 0);
+    Canny(g2, result, 150, 220);
+//    rgb2gray(g2, g2);
     tt.start();
-    invariantMomentHu(g2, huMoments2);
+    invariantMomentHu(result, huMoments2);
     tt.stop();
     cout << "time: " << tt.duration() << endl;
     printMoments("gambar 2 : " ,huMoments2);
@@ -241,27 +250,29 @@ int main(int /*argc*/, char /*argv*/)
 	cout << "Score: " << getScore(huMoments, huMoments2) << endl;
 
     namedWindow("gambar2");
-    imshow("gambar2", g2);
+    imshow("gambar2", result);
 
     vector<double> huMoments3;
-    Mat g3 = imread("images/gp3.bmp");
-    rgb2gray(g3, g3);
-    invariantMomentHu(g3, huMoments3);
+    Mat g3 = imread("images/black640480.bmp", 0);
+    Canny(g3, result, 150, 220);
+//    rgb2gray(g3, g3);
+    invariantMomentHu(result, huMoments3);
 //    printMoments("gambar 3 : ", huMoments3);
 
 	cout << "Score: " << getScore(huMoments, huMoments3) << endl;
     namedWindow("gambar3");
-    imshow("gambar3", g3);
+    imshow("gambar3", result);
 
     vector<double> huMoments4;
-    Mat g4 = imread("images/gp4.bmp");
-    rgb2gray(g4, g4);
-    invariantMomentHu(g4, huMoments4);
+    Mat g4 = imread("images/region.bmp", 0);
+    Canny(g4, result, 150, 220);
+//    rgb2gray(g4, g4);
+    invariantMomentHu(result, huMoments4);
 //    printMoments("gambar 4 : ", huMoments4);
 
 	cout << "Score: " << getScore(huMoments, huMoments4) << endl;
     namedWindow("gambar4");
-    imshow("gambar4", g4);
+    imshow("gambar4", result);
 
 	//cvHu("gpt.bmp");
 	//cvHu("gp.bmp");
