@@ -70,6 +70,20 @@ int RotateGrayImage(IMat matSrc, IMat **matDst, const double degree, IPoint *rec
     int plx = rect[0].x, ply=rect[0].y, prx=rect[3].x, pry=rect[3].y;
     int plxb = rect[1].x, plyb=rect[1].y, prxb=rect[2].x, pryb=rect[2].y;
 
+#if 1
+    rect[0].x = m[0] * plx + m[1] * ply + m[2];
+    rect[0].y = m[3] * plx + m[4] * ply + m[5];
+
+    rect[1].x = m[0] * plxb + m[1] * plyb + m[2];
+    rect[1].y = m[3] * plxb + m[4] * plyb + m[5];
+
+    rect[2].x = m[0] * prxb + m[1] * pryb + m[2];
+    rect[2].y = m[3] * prxb + m[4] * pryb + m[5];
+
+    rect[3].x = m[0] * prx + m[1] * pry + m[2];
+    rect[3].y = m[3] * prx + m[4] * pry + m[5];
+#endif
+#if 0
     rect[0].y = m[0] * plx + m[1] * ply + m[2];
     rect[0].x = m[3] * plx + m[4] * ply + m[5];
 
@@ -81,6 +95,7 @@ int RotateGrayImage(IMat matSrc, IMat **matDst, const double degree, IPoint *rec
 
     rect[3].y = m[0] * prx + m[1] * pry + m[2];
     rect[3].x = m[3] * prx + m[4] * pry + m[5];
+#endif
 
 //    IMat M = IMat(2, 3, CV_64F, m);
 /*    IMat *tmpM = ICreateMat(2, 3, U8C1);
