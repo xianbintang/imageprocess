@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include "TimeTracker.h"
@@ -26,6 +27,25 @@ int main(int argc, char **argv)
     hm.CreateTemplate(templateImg);
     IplImage * SearchImg = cvLoadImage(argv[2], 0);
     cvThreshold(SearchImg, SearchImg, 150, 255, CV_THRESH_BINARY);
+
+#if 1
+    Mat image = imread(argv[1]);
+    cvtColor(image, image, CV_BGR2GRAY);
+    Moments mts = moments(image);
+    double hu[7];
+    HuMoments(mts, hu);
+    for (int i=0; i<7; i++)
+    {
+        cout << hu[i] <<endl;
+    }
+
+    cout << "my print" << endl;
+   hm.printMoments();
+   return 0;
+#endif
+
+
+
 
     TimeTracker tt;
     tt.start();
