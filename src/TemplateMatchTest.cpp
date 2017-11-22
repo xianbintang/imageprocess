@@ -65,12 +65,12 @@ void TemplateMatchTest()
 void DrawContours(IplImage* source, IPoint COG,TemplateMatch tpl, CvScalar color,int lineWidth)
 {
     CvPoint point;
-	point.y=COG.x;
-	point.x=COG.y;
+//	point.y=COG.x;
+//	point.x=COG.y;
 	for(int i=0; i<tpl.noOfCordinates; i++)
 	{
-		point.y=tpl.cordinates[i].x + COG.x;
-		point.x=tpl.cordinates[i].y + COG.y;
+		point.x =tpl.cordinates[i].x + COG.x;
+		point.y =tpl.cordinates[i].y + COG.y;
 		cvLine(source,point,point,color,lineWidth);
 	}
 
@@ -177,7 +177,7 @@ int main(int argc, char ** argv) {
     "tpls/tpls4/tplArgs.txt"};
 
 //    saveTpls(tpls[4], 60, filenames);
-//    ResumeTpls(tpls[4], 60, filenames);
+    ResumeTpls(tpls[4], 60, filenames);
     //god
 
     for (int i = -29; i < 30; ++i) {
@@ -208,7 +208,7 @@ int main(int argc, char ** argv) {
     "tpls/tpls3/tplArgs.txt"};
 
 //    saveTpls(tpls[3], 60, filenames1);
-//    ResumeTpls(tpls[3], 60, filenames1);
+    ResumeTpls(tpls[3], 60, filenames1);
 //    for (int i = 0; i < 60; ++i) {
 //        IMat *matDst;
 //        RotateGrayImage(*t3, &matDst, i, rect);
@@ -254,9 +254,8 @@ int main(int argc, char ** argv) {
 
 //    ResumeTpl(&tpl);
 //    rotateTpl(&tpl, 142, 66, 3);
-//    DrawContours(dst, tpls[3][10], CvScalar(255,255,255), 1);
+//    DrawContours(dst,  tpls[4][32].centerOfGravity, tpls[4][32], CvScalar(255,255,255), 1);
 //
-//    cvNamedWindow("tpl", 1);
 //    cvShowImage("hehe", dst);
 //    cvWaitKey(-1);
     IPoint point;

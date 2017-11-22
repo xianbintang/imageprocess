@@ -65,11 +65,11 @@ int CreateGeoMatchModel(TemplateMatch *tpl,  const IMat *src, double maxContrast
     tpl->modelWidth =src->width;			//Save Template width
 
     tpl->noOfCordinates=0;											//initialize
-    tpl->cordinates = (IPoint *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(IPoint));
+    tpl->cordinates = (IPoint *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(IPoint) * 8);
 
-    tpl->edgeMagnitude = (double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double));		//Allocate memory for edge magnitude for selected points
-    tpl->edgeDerivativeX = 	(double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double));		//Allocate memory for edge X derivative for selected points
-    tpl->edgeDerivativeY = (double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double));		////Allocate memory for edge Y derivative for selected points
+    tpl->edgeMagnitude = (double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double) * 8);		//Allocate memory for edge magnitude for selected points
+    tpl->edgeDerivativeX = 	(double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double) * 8);		//Allocate memory for edge X derivative for selected points
+    tpl->edgeDerivativeY = (double *)malloc(tpl->modelWidth * tpl->modelHeight * sizeof(double) * 8);		////Allocate memory for edge Y derivative for selected points
 
 
     // Calculate gradient of Template
@@ -92,10 +92,10 @@ int CreateGeoMatchModel(TemplateMatch *tpl,  const IMat *src, double maxContrast
     // save selected edge information
     for (int i = 0; i < edge->height; ++i) {
         for (int j = 0; j < edge->width; ++j) {
-            curX=i;	curY=j;
+            curX=j;	curY=i;
             IPoint p;
-            p.x = i;
-            p.y = j;
+            p.x = j;
+            p.y = i;
             _sdx = (short*)(gx->fptr + gx->step*i);
             _sdy = (short*)(gy->fptr + gy->step*i);
             fdx = _sdx[j]; fdy = _sdy[j];
@@ -241,8 +241,8 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
         _Sdy = (short *) (Sdy->fptr + Sdy->step * (i));
 
         for (j = 0; j < Ssize.width; j++) {
-            double ex = lookupTableX[abs(_Sdx[j])][abs(_Sdy[j])];
-            double ey = lookupTableY[abs(_Sdx[j])][abs(_Sdy[j])];
+            double ex = lookupTableX[(int)abs(_Sdx[j])][(int)abs(_Sdy[j])];
+            double ey = lookupTableY[(int)abs(_Sdx[j])][(int)abs(_Sdy[j])];
             if (_Sdx[j] > 0)
                 edgeX[i][j] = ex;
             else
@@ -291,19 +291,19 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
             for (j = 0; j < Ssize.width; j += 4) {
                 partialSum = 0; // initilize partialSum measure
                 for (m = 0; m < tpl->noOfCordinates; m += 1) {
-                    curX = i + tpl->cordinates[m].x;    // template X coordinate
-                    curY = j + tpl->cordinates[m].y; // template Y coordinate
+                    curX = j + tpl->cordinates[m].x;    // template X coordinate
+                    curY = i + tpl->cordinates[m].y; // template Y coordinate
                     iTx = tpl->edgeDerivativeX[m];    // template X derivative
                     iTy = tpl->edgeDerivativeY[m];    // template Y derivative
 
-                    if (curX < 0 || curY < 0 || curX > Ssize.height - 1 || curY > Ssize.width - 1)
+                    if (curX < 0 || curY < 0 || curX > Ssize.width - 1 || curY > Ssize.height- 1)
                         continue;
 
-                    _Sdx = (short *) (Sdx->fptr + Sdx->step * (curX));
-                    _Sdy = (short *) (Sdy->fptr + Sdy->step * (curX));
+                    _Sdx = (short *) (Sdx->fptr + Sdx->step * (curY));
+                    _Sdy = (short *) (Sdy->fptr + Sdy->step * (curY));
 
-                    iSx = _Sdx[curY]; // get curresponding  X derivative from source image
-                    iSy = _Sdy[curY];// get curresponding  Y derivative from source image
+                    iSx = _Sdx[curX]; // get curresponding  X derivative from source image
+                    iSy = _Sdy[curX];// get curresponding  Y derivative from source image
 
                     if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0)) {
                         //partial Sum  = Sum of(((Source X derivative* Template X drivative) + Source Y derivative * Template Y derivative)) / Edge magnitude of(Template)* edge magnitude of(Source))
@@ -311,7 +311,7 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
 //                                partialSum + ((iSx * iTx) + (iSy * iTy)) * (tpl->edgeMagnitude[m] * matGradMag[curX][curY]);
 
                         partialSum =
-                                partialSum + ((edgeX[curX][curY]* iTx) + (edgeY[curX][curY]* iTy));
+                                partialSum + ((edgeX[curY][curX]* iTx) + (edgeY[curY][curX]* iTy));
                     }
 
                     sumOfCoords = m + 1;
@@ -327,8 +327,8 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
 //                fout << count << std::endl;
                 if (partialScore > resultScore) {
                     resultScore = partialScore; //  Match score
-                    resultPoint->x = i;            // result coordinate X
-                    resultPoint->y = j;            // result coordinate Y
+                    resultPoint->x = j;            // result coordinate X
+                    resultPoint->y = i;            // result coordinate Y
                     *resultDegree = dg;
                     if (resultScore > 0.20  && sumOfCoords > tpl->noOfCordinates * 0.8 / 4) {
 //                        flag = true;
@@ -427,8 +427,8 @@ double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int
         _Sdy = (short *) (Sdy->fptr + Sdy->step * (i));
 
         for (j = 0; j < Ssize.width; j++) {
-            double ex = lookupTableX[abs(_Sdx[j])][abs(_Sdy[j])];
-            double ey = lookupTableY[abs(_Sdx[j])][abs(_Sdy[j])];
+            double ex = lookupTableX[(int)abs(_Sdx[j])][(int)abs(_Sdy[j])];
+            double ey = lookupTableY[(int)abs(_Sdx[j])][(int)abs(_Sdy[j])];
             if (_Sdx[j] > 0)
                 edgeX[i][j] = ex;
             else
@@ -465,25 +465,25 @@ double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int
         double normGreediness =
                 ((1 - greediness * minScore) / (1 - greediness)) / tpl->noOfCordinates; // precompute greedniness
 
-        for (i = where.x - 4; i < where.x + 4; i++) {
-            for (j = where.y - 4; j < where.y + 4; j++) {
+        for (i = where.y - 40; i < where.y + 40; i++) {
+            for (j = where.x - 40; j < where.x + 40; j++) {
                 partialSum = 0; // initilize partialSum measure
                 int count = 0;
                 for (m = 0; m < tpl->noOfCordinates; m += 1) {
                     count++;
-                    curX = i + tpl->cordinates[m].x;    // template X coordinate
-                    curY = j + tpl->cordinates[m].y; // template Y coordinate
+                    curX = j + tpl->cordinates[m].x;    // template X coordinate
+                    curY = i + tpl->cordinates[m].y; // template Y coordinate
                     iTx = tpl->edgeDerivativeX[m];    // template X derivative
                     iTy = tpl->edgeDerivativeY[m];    // template Y derivative
 
-                    if (curX < 0 || curY < 0 || curX > Ssize.height - 1 || curY > Ssize.width - 1)
+                    if (curX < 0 || curY < 0 || curX > Ssize.width - 1 || curY > Ssize.height- 1)
                         continue;
 
-                    _Sdx = (short *) (Sdx->fptr + Sdx->step * (curX));
-                    _Sdy = (short *) (Sdy->fptr + Sdy->step * (curX));
+                    _Sdx = (short *) (Sdx->fptr + Sdx->step * (curY));
+                    _Sdy = (short *) (Sdy->fptr + Sdy->step * (curY));
 
-                    iSx = _Sdx[curY]; // get curresponding  X derivative from source image
-                    iSy = _Sdy[curY];// get curresponding  Y derivative from source image
+                    iSx = _Sdx[curX]; // get curresponding  X derivative from source image
+                    iSy = _Sdy[curX];// get curresponding  Y derivative from source image
 
                     if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0)) {
                         //partial Sum  = Sum of(((Source X derivative* Template X drivative) + Source Y derivative * Template Y derivative)) / Edge magnitude of(Template)* edge magnitude of(Source))
@@ -491,7 +491,7 @@ double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int
 //                                partialSum + ((iSx * iTx) + (iSy * iTy)) * (tpl->edgeMagnitude[m] * matGradMag[curX][curY]);
 
                         partialSum =
-                                partialSum + ((edgeX[curX][curY]* iTx) + (edgeY[curX][curY]* iTy));
+                                partialSum + ((edgeX[curY][curX]* iTx) + (edgeY[curY][curX]* iTy));
                     }
 
                     sumOfCoords = m + 1;
@@ -506,8 +506,8 @@ double FindGeoMatchModelRotateTplInRange(TemplateMatch * tpls, IPoint where, int
 //                std::cout << "no of cordinates computed: " << count << std::endl;
                 if (partialScore > resultScore) {
                     resultScore = partialScore; //  Match score
-                    resultPoint->x = i;            // result coordinate X
-                    resultPoint->y = j;            // result coordinate Y
+                    resultPoint->x = j;            // result coordinate X
+                    resultPoint->y = i;            // result coordinate Y
                     *resultDegree = angle;
                 }
             }
@@ -533,15 +533,16 @@ void FindTemplateInPyramid(TemplateMatch tpls[][60], IMat *images[], IPoint *pos
     IPoint point, where;
 
     Rect region4;
-    region4.x = 60;
-    region4.y = 80;
-    region4.width = 160;
-    region4.height = 90;
+    region4.x = 50;
+    region4.y = 140;
+    region4.width = 470;
+    region4.height = 190;
+
     Rect region3;
-    region3.x = 30;
-    region3.y = 40;
-    region3.width = 80;
-    region3.height = 45;
+    region3.x = 25;
+    region3.y = 70;
+    region3.width = 235;
+    region3.height = 85;
     double degree;
     double score = FindGeoMatchModelRotateTpl(tpls[3], images[3], 0.8, 0.995, &point, 30, &degree, region3);
 
