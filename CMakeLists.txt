@@ -79,3 +79,6 @@ target_link_libraries(getPoint ${OpenCV_LIBS})
 add_executable(HuMatch2 src/hu2.cpp)
 target_link_libraries(HuMatch2 ${OpenCV_LIBS})
 
+
+add_executable(create_template src/create_template_pc/contour_detection.h src/create_template_pc/main.cpp src/create_template_pc/contour_detection.cpp)
+target_link_libraries(create_template ${OpenCV_LIBS})
