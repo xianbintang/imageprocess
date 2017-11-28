@@ -32,15 +32,15 @@ int main(int argc, char **argv)
     IplImage *img = cvLoadImage(argv[1], 0);
     IplImage * templateImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1);
 
-//    cvCanny(img, templateImg, 150, 220);
-    cvThreshold(img, templateImg, 100, 255, 0);
+    cvCanny(img, templateImg, 150, 220);
+//    cvThreshold(img, templateImg, 100, 255, 0);
     HuMatch hm;
     hm.CreateTemplate(templateImg);
 
     IplImage * SearchImg = cvLoadImage(argv[2], 0);
     IplImage * si = cvCreateImage(cvGetSize(SearchImg), IPL_DEPTH_8U, 1);
-//    cvCanny(SearchImg, si, 150, 220);
-    cvThreshold(SearchImg, si, 100, 255, 0);
+    cvCanny(SearchImg, si, 150, 220);
+//    cvThreshold(SearchImg, si, 100, 255, 0);
 //    cvShowImage("hehe", si);
 
     hm.printMoments();

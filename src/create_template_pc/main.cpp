@@ -9,34 +9,45 @@
 #include <windef.h>
 #include "contour_detection.h"
 
+void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_parameter)
+{
+    koyo_tool_contour_parameter.algo_strategy = 1;
+
+    koyo_tool_contour_parameter.detect_rect_x0 = 196;
+    koyo_tool_contour_parameter.detect_rect_y0 = 130;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 197;
+    koyo_tool_contour_parameter.detect_rect_y1 = 427;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 483;
+    koyo_tool_contour_parameter.detect_rect_y2 = 428;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 483;
+    koyo_tool_contour_parameter.detect_rect_y3 = 130;
+
+    koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
+    koyo_tool_contour_parameter.angle_range = 180;
+}
+
+
 int main(int argc, char **argv)
 {
     cv::Mat template_image = cv::imread(argv[1], 0);
-//    cv::imshow("eh" ,template_image);
-
-    double degree = 9;
-    double angle = degree  * CV_PI / 180.; // 弧度
-    double a = sin(angle), b = cos(angle);
-    int width = template_image.cols;
-    int height = template_image.rows;
-    int width_rotate = int(height * fabs(a) + width * fabs(b));
-    int height_rotate = int(width * fabs(a) + height * fabs(b));
-//旋转数组map
-// [ m0  m1  m2 ] ===>  [ A11  A12   b1 ]
-// [ m3  m4  m5 ] ===>  [ A21  A22   b2 ]
-    float map[6];
-    cv::Mat map_matrix = cv::Mat(2, 3, CV_32F, map);
-// 旋转中心
-    CvPoint2D32f center = cvPoint2D32f(width / 2, height / 2);
-    CvMat map_matrix2 = map_matrix;
-    cv2DRotationMatrix(center, degree, 1.0, &map_matrix2);
-    map[2] += (width_rotate - width) / 2;
-    map[5] += (height_rotate - height) / 2;
-    cv::Mat img_rotate;
-    cv::warpAffine(template_image, img_rotate, map_matrix, cv::Size(width_rotate, height_rotate), 1, 0, 0);
 
 
-    create_template(template_image);
+    Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter;
+    init_contour_parameter(koyo_tool_contour_parameter);
+
+    cv::Mat template_roi;
+    std::vector<cv::Point> rect =  {
+            {koyo_tool_contour_parameter.detect_rect_x0, koyo_tool_contour_parameter.detect_rect_y0},
+            {koyo_tool_contour_parameter.detect_rect_x1, koyo_tool_contour_parameter.detect_rect_y1},
+            {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
+            {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
+    };
+    cutout_template_image(template_image, rect, template_roi);
+    create_template(template_roi, koyo_tool_contour_parameter);
+//    cv::imshow("eh" ,template_roi);
 //    cvWaitKey(0);
     return 0;
 }

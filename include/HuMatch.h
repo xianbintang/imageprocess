@@ -262,7 +262,7 @@ double dSigmaST =0;
                     std::cout << "score: " << score << std::endl;
                     p.x = j;
                     p.y = i;
-                    DrawContours(SearchImg,p, tSize);
+//                    DrawContours(SearchImg,p, tSize);
 //                    cv::waitKey(0);
                 }
 
