@@ -135,6 +135,63 @@ public:
     }
 
     double getScore(const std::vector<double> &Sa) {
+#if 0
+        auto ma = Sa;
+        auto mb = templateHuMoments;
+        int i, sma, smb;
+//	double eps = 1.e-5;
+    double eps = 1.e-10;
+    double mmm;
+    double result = 0;
+	for( i = 0; i < 7; i++ ) {
+                double ama = fabs( ma[i] );
+                double amb = fabs( mb[i] );
+
+                if( ma[i] > 0 )
+                    sma = 1;
+                else if( ma[i] < 0 )
+                    sma = -1;
+                else
+                    sma = 0;
+                if( mb[i] > 0 )
+                    smb = 1;
+                else if( mb[i] < 0 )
+                    smb = -1;
+                else
+                    smb = 0;
+
+                if( ama > eps && amb > eps )
+                {
+                    ama = 1. / (sma * log10( ama ));
+                    amb = 1. / (smb * log10( amb ));
+                    result += fabs( -ama + amb );
+                }
+
+	}
+	return result;
+#endif
+
+#if 0
+        auto Ta = templateHuMoments;
+double dbR =0;
+double dSigmaST =0;
+    double dSigmaS =0;
+    double dSigmaT =0;
+    double temp =0;
+    {for(int i=0;i<7;i++)
+    {
+        temp = fabs(Sa[i]*Ta[i]);
+        dSigmaST+=temp;
+        dSigmaS+=pow(Sa[i],2);
+        dSigmaT+=pow(Ta[i],2);
+    }}
+    dbR = dSigmaST/(sqrt(dSigmaS)*sqrt(dSigmaT));
+	return dbR;
+
+
+#endif
+#if 1
+
         //  计算相似度1
         double dbR =0; //相似度
         double dSigmaST =0;
@@ -152,6 +209,7 @@ public:
         }
         dbR = dSigmaST/(sqrt(dSigmaS)*sqrt(dSigmaT));
         return dbR;
+#endif
     }
 
     void getROIContour(std::vector<cv::Point> &contour, const cv::Rect &rect) {
@@ -171,9 +229,11 @@ public:
         double maxScore = -99999.9;
         cv::Point p;
 
+        tSize.width += 3;
+        tSize.height = tSize.height + 3;
         TimeTracker tt;
-        for(int i = 0; i < SearchImg->height - tSize.height; i++) {
-            for (int j = 0; j < SearchImg->width - tSize.width; ++j) {
+        for(int i = 0; i < SearchImg->height - tSize.height; i += 5) {
+            for (int j = 0; j < SearchImg->width - tSize.width; j += 5) {
 //                tt.start();
                 std::vector<double> SearchHuMoments2;
 //                SearchHuMoments2.reserve(POINTSMALL);
@@ -183,6 +243,9 @@ public:
                 std::vector<cv::Point> contour;
 //                contour.reserve(POINTSMALL);
                 getROIContour(contour, cv::Rect(j,i,tSize.width,tSize.height));
+                if(contour.size() < searchImgContour.size() / 5) {
+                    continue;
+                }
 
 //                std::cout << "ROI Contour: " << contour.size() << std::endl;
 //            std::cout << "size of Contour: " << contour.size() << std::endl;
@@ -196,12 +259,20 @@ public:
 
                 if(score > threshold) {
                     cvCircle(SearchImg,cv::Point(j, i), 1, cvScalar(255, 255, 255));
+                    std::cout << "score: " << score << std::endl;
+                    p.x = j;
+                    p.y = i;
+                    DrawContours(SearchImg,p, tSize);
+//                    cv::waitKey(0);
                 }
 
                 if (score > maxScore) {
+
                     maxScore = score;
                     p.x = j;
                     p.y = i;
+//                    DrawContours(SearchImg,p, tSize);
+//                    cv::waitKey(0);
                 }
             }
 
@@ -210,7 +281,6 @@ public:
         std::cout << "Max Score: " << maxScore << std::endl;
         std::cout << "count: " << count << std::endl;
         DrawContours(SearchImg,p, tSize);
-        cvShowImage("result", SearchImg);
     }
 
     void printMoments()
