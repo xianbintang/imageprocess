@@ -74,6 +74,7 @@ static int rotate_rect(std::vector<cv::Point> &rect, const std::vector<float> ro
 
     rect[3].x = rotate_matrix[0] * prx + rotate_matrix[1] * pry + rotate_matrix[2];
     rect[3].y = rotate_matrix[3] * prx + rotate_matrix[4] * pry + rotate_matrix[5];
+    return 0;
 }
 
 int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template)
@@ -101,6 +102,7 @@ int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> 
 //    cv::rectangle(img_rotate, rect[0], rect[2], cv::Scalar(255,255,255));
 //    cv::imshow("eh" ,interesting_template);
     cvWaitKey(0);
+    return 0;
 }
 
 /*
@@ -120,6 +122,7 @@ static int get_center_numof_contour(const cv::Mat src, cv::Point &center, unsign
         center.y = static_cast<int>(m01/m00);
     }
     numofcontour = m00;
+    return 0;
 }
 
 // 计算点到直线的距离
@@ -259,7 +262,7 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
 // TODO 发送给客户端以后需要释放
 int free_tpls(TemplateStruct tpls[][MAX_DEGREE])
 {
-
+    return 0;
 }
 
 /*
@@ -334,10 +337,10 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
-    } else if (koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM) {
+    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
-    } else if (koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_HIGH) {
+    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_HIGH) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
     }

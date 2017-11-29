@@ -5,7 +5,7 @@
 #ifndef KOYO_CONTOUR_DETECTION_H
 #define KOYO_CONTOUR_DETECTION_H
 
-#include <types.h>
+//#include <types.h>
 #include <opencv2/core/mat.hpp>
 
 const int MAX_NUM_PYRAMID = 5;
