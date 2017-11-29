@@ -32,12 +32,13 @@ typedef struct TemplateMatch
      * 6. 模板的重心。
      * */
     int				noOfCordinates;		//Number of elements in coordinate array 边缘点的个数
-    cv::Point			*cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
+    // 替换成vector
+   std::vector<cv::Point>			cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
     int				modelHeight;		//Template height 模板的高度
     int				modelWidth;			//Template width 模板的宽度
 //    double			*edgeMagnitude;		//gradient magnitude 所有边缘点的梯度值
-    double			*edgeDerivativeX;	//gradient in X direction
-    double			*edgeDerivativeY;	//gradient in Y direction
+    std::vector<double>			edgeDerivativeX;	//gradient in X direction
+    std::vector<double>			edgeDerivativeY;	//gradient in Y direction
     cv::Point			centerOfGravity;	//Center of gravity of template 重心
     cv::Point          rect[4];            //相对于左上点的坐标
     bool modelDefined;

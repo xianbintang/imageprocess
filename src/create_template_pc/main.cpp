@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     cutout_template_image(template_image, rect, template_roi);
     create_template(template_roi, koyo_tool_contour_parameter);
 //    cv::imshow("eh" ,template_roi);
-//    cvWaitKey(0);
+    cvWaitKey(0);
     return 0;
 }
 

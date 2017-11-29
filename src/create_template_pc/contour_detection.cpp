@@ -170,10 +170,6 @@ int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_thres
     tpl.modelWidth = src.cols;    //Save Template width
 
     tpl.noOfCordinates = 0;    //initialize
-    tpl.cordinates = new cv::Point[tpl.modelWidth * tpl.modelHeight];
-
-    tpl.edgeDerivativeX = new double[tpl.modelWidth * tpl.modelHeight]; //Allocate memory for edge X derivative for selected points
-    tpl.edgeDerivativeY = new double[tpl.modelWidth * tpl.modelHeight]; ////Allocate memory for edge Y derivative for selected points
 
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
@@ -204,18 +200,17 @@ int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_thres
                     /* 坐标变换到外接矩形左上角为(0, 0) */
                     RSum = RSum + j;
                     CSum = CSum + i;    // Row sum and column sum for center of gravity
-                    tpl.cordinates[tpl.noOfCordinates].x = j;
-                    tpl.cordinates[tpl.noOfCordinates].y = i;
+                    tpl.cordinates.push_back(p);
+//                    tpl.cordinates[tpl.noOfCordinates].x = j;
+//                    tpl.cordinates[tpl.noOfCordinates].y = i;
 
                     /* TODO 可以修改成使用查找表的形式 */
                     double vector_length = sqrt(fdx * fdx + fdy * fdy);
                     if (fabs(vector_length - 0.) < 0.00001) {
 //                        printf(".............................................\n");
                     }
-                    tpl.edgeDerivativeX[tpl.noOfCordinates] =
-                            fdx / vector_length;
-                    tpl.edgeDerivativeY[tpl.noOfCordinates] =
-                            fdy / vector_length;
+                    tpl.edgeDerivativeX.push_back(fdx / vector_length);
+                    tpl.edgeDerivativeY.push_back(fdy / vector_length);
                     tpl.noOfCordinates++;
                 }
             }
