@@ -7,6 +7,7 @@
 
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
+#include <memory>
 
 const int MAX_NUM_PYRAMID = 5;
 const int MAX_DEGREE = 360;
@@ -31,17 +32,18 @@ typedef struct TemplateMatch
      * 5. 模板的高宽；
      * 6. 模板的重心。
      * */
-    int				noOfCordinates;		//Number of elements in coordinate array 边缘点的个数
+    UINT8 modelDefined;
+    UINT32 noOfCordinates;		//Number of elements in coordinate array 边缘点的个数
     // 替换成vector
-   std::vector<cv::Point>			cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
-    int				modelHeight;		//Template height 模板的高度
-    int				modelWidth;			//Template width 模板的宽度
+    UINT16 modelHeight;		//Template height 模板的高度
+    UINT16 modelWidth;			//Template width 模板的宽度
 //    double			*edgeMagnitude;		//gradient magnitude 所有边缘点的梯度值
-    std::vector<double>			edgeDerivativeX;	//gradient in X direction
-    std::vector<double>			edgeDerivativeY;	//gradient in Y direction
+
     cv::Point			centerOfGravity;	//Center of gravity of template 重心
-    cv::Point          rect[4];            //相对于左上点的坐标
-    bool modelDefined;
+//    cv::Point          rect[4];            //相对于左上点的坐标
+    std::vector<cv::Point>			cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
+    std::vector<float>			edgeDerivativeX;	//gradient in X direction
+    std::vector<float>			edgeDerivativeY;	//gradient in Y direction
 } TemplateStruct;
 
 // 工具级别的参数, 客户端传下来的
@@ -100,4 +102,8 @@ typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
 
 int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template);
 int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
+
+std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param);
+//int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> template_data);
+int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* template_data);
 #endif //KOYO_CONTOUR_DETECTION_H

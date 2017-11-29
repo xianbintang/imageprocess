@@ -11,6 +11,163 @@
 #include <queue>
 #include "contour_detection.h"
 
+std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+{
+    // 先计算所有要使用的内存大小，然后分配空间，最后一点点将数据拷贝过去
+    std::size_t buf_size = 0;
+
+    buf_size += sizeof(koyo_contour_template_runtime_param.run_time_npyramid);
+    buf_size += sizeof(float) * koyo_contour_template_runtime_param.run_time_npyramid;
+    // 要记录每层金字塔上的模板个数
+
+    for (const auto &tpl_arr: koyo_contour_template_runtime_param.tpls) {
+        // 每层金字塔上的模板个数
+        buf_size += sizeof(UINT16);
+        for (const auto &tpl : tpl_arr) {
+            buf_size += sizeof (tpl.modelDefined);
+            buf_size += sizeof (tpl.noOfCordinates);
+            buf_size += sizeof (tpl.modelHeight);
+            buf_size += sizeof (tpl.modelWidth);
+
+            buf_size += sizeof(short) * 2;
+
+            buf_size += sizeof(short) * 2 * tpl.noOfCordinates;
+            buf_size += sizeof(float) * tpl.noOfCordinates;
+            buf_size += sizeof(float) * tpl.noOfCordinates;
+        }
+    }
+
+    // 分配空间
+    std::unique_ptr<char[]> buf(new char[buf_size]);
+
+    std::size_t index = 0;
+    memcpy(&buf[index], &koyo_contour_template_runtime_param.run_time_npyramid, sizeof(koyo_contour_template_runtime_param.run_time_npyramid));
+    index += sizeof(koyo_contour_template_runtime_param.run_time_npyramid);
+
+    for (auto const &iter : koyo_contour_template_runtime_param.search_angel_nstep) {
+        memcpy(&buf[index], &iter, sizeof(float));
+        index += sizeof(float);
+    }
+
+    // 拷贝模板数据
+    for (const auto &tpl_arr: koyo_contour_template_runtime_param.tpls) {
+        UINT16 tpl_size = static_cast<UINT16>(tpl_arr.size()); //肯定不会超的
+        memcpy(&buf[index], &tpl_size, sizeof(UINT16));
+        index += sizeof(UINT16);
+
+        for (const auto &tpl : tpl_arr) {
+            memcpy(&buf[index], &tpl.modelDefined, sizeof(tpl.modelDefined));
+            index += sizeof(tpl.modelDefined);
+
+            memcpy(&buf[index], &tpl.noOfCordinates, sizeof(tpl.noOfCordinates));
+            index += sizeof(tpl.noOfCordinates);
+
+            memcpy(&buf[index], &tpl.modelHeight, sizeof(tpl.modelHeight));
+            index += sizeof(tpl.modelHeight);
+
+            memcpy(&buf[index], &tpl.modelWidth, sizeof(tpl.modelWidth));
+            index += sizeof(tpl.modelWidth);
+
+            memcpy(&buf[index], &tpl.centerOfGravity.x, sizeof(short));
+            index += sizeof(short);
+
+            memcpy(&buf[index], &tpl.centerOfGravity.y, sizeof(short));
+            index += sizeof(short);
+
+            for (auto const &coord : tpl.cordinates) {
+                memcpy(&buf[index], &coord.x, sizeof(short));
+                index += sizeof(short);
+
+                memcpy(&buf[index], &coord.y, sizeof(short));
+                index += sizeof(short);
+            }
+            for (auto const & edgeX : tpl.edgeDerivativeX) {
+                memcpy(&buf[index], &edgeX, sizeof(float));
+                index += sizeof(float);
+            }
+
+            for (auto const & edgeY : tpl.edgeDerivativeY) {
+                memcpy(&buf[index], &edgeY, sizeof(float));
+                index += sizeof(float);
+            }
+        }
+    }
+
+    std::cout << buf_size << ", in MB: " << 1.0 * buf_size / 1024 / 1024 << "MB" << std::endl;
+    float y1 = buf[buf_size - 4];
+    float y2 = buf[buf_size - 8];
+    printf("y1:%f  y2:%f\n", *((float*)&buf[buf_size - 4]), *((float*)&buf[buf_size - 8]));
+
+    return buf;
+}
+
+//int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> buf)
+int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* buf)
+{
+    std::size_t index = 0;
+
+    koyo_contour_template_runtime_param.run_time_npyramid = *((UINT8 *)&buf[index]);
+    index += sizeof(koyo_contour_template_runtime_param.run_time_npyramid);
+
+    for (int i = 0; i < koyo_contour_template_runtime_param.run_time_npyramid; ++i) {
+        float angle = *((float*)&buf[index]);
+        index += sizeof(float);
+        koyo_contour_template_runtime_param.search_angel_nstep.push_back(angle);
+    }
+
+    // 拷贝模板数据
+    for (int i = 0; i < koyo_contour_template_runtime_param.run_time_npyramid; ++i) {
+        std::vector<TemplateStruct> tpl_arr;
+
+        UINT16 tpl_size = *((UINT16*)&buf[index]);
+        index += sizeof(UINT16);
+
+        TemplateStruct tpl;
+        for (int j = 0; j < tpl_size; ++j) {
+            tpl.modelDefined = *((UINT8*)&buf[index]);
+            index += sizeof(tpl.modelDefined);
+
+            tpl.noOfCordinates= *((UINT32*)&buf[index]);
+            index += sizeof(tpl.noOfCordinates);
+
+            tpl.modelHeight= *((UINT16*)&buf[index]);
+            index += sizeof(tpl.modelHeight);
+
+            tpl.modelWidth= *((UINT16*)&buf[index]);
+            index += sizeof(tpl.modelWidth);
+
+            tpl.centerOfGravity.x = *((UINT16*)&buf[index]);
+            index += sizeof(short);
+
+            tpl.centerOfGravity.y = *((UINT16*)&buf[index]);
+            index += sizeof(short);
+
+            // 拷贝特征数据
+            for (int i = 0; i < tpl.noOfCordinates; ++i) {
+
+                cv::Point coord;
+                coord.x = *((UINT16*)&buf[index]);
+                index += sizeof(short);
+
+                coord.y = *((UINT16*)&buf[index]);
+                index += sizeof(short);
+                tpl.cordinates.push_back(coord);
+
+                float edgeX = *((float*)&buf[index]);
+                index += sizeof(float);
+                tpl.edgeDerivativeX.push_back(edgeX);
+
+                float edgeY = *((float*)&buf[index]);
+                index += sizeof(float);
+                tpl.edgeDerivativeY.push_back(edgeY);
+
+            }
+        }
+        tpl_arr.push_back(tpl);
+    }
+
+}
+
 std::ostream &print_tpls(std::ostream &os, const Koyo_Contour_Template_Runtime_Param & rhl)
 {
     os << "runtime npyramid: " << static_cast<int>(rhl.run_time_npyramid) << std::endl;
@@ -228,7 +385,7 @@ int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_thres
 
     // change coordinates to reflect center of gravity
     /* 将重心变换到坐标原点 */
-    int m;
+    UINT32 m;
     for (m = 0; m < tpl.noOfCordinates; m++) {
         /*int temp;
 
@@ -247,7 +404,7 @@ int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_thres
 
 static void draw_template(cv::Mat src, const TemplateStruct &tpl)
 {
-    for (int i = 0; i < tpl.noOfCordinates; ++i) {
+    for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
     cv::imshow("hehe", src);
@@ -430,6 +587,9 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     koyo_contour_template_runtime_param.search_angel_nstep = angle_steps;
     // todo 换成move操作会好一些吧
     koyo_contour_template_runtime_param.tpls = tpls;
+    auto template_data = pack_template(koyo_contour_template_runtime_param);
+    Koyo_Contour_Template_Runtime_Param kctrp;
+    unpack_template(kctrp, template_data.get());
 //    print_tpls(std::cout, koyo_contour_template_runtime_param);
     return 0;
 }
