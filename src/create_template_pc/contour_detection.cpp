@@ -11,22 +11,42 @@
 #include <queue>
 #include "contour_detection.h"
 
+std::ostream &print_tpls(std::ostream &os, const Koyo_Contour_Template_Runtime_Param & rhl)
+{
+    os << "runtime npyramid: " << static_cast<int>(rhl.run_time_npyramid) << std::endl;
+    os << "angle steps each level: " << std::endl;
+    int k = 0;
+    for (auto angle : rhl.search_angel_nstep) {
+        os << "level " << k << ": " << angle << std::endl;
+    }
+
+    k = 0;
+    os << "templates each level: " << std::endl;
+    for (auto tpl: rhl.tpls) {
+        os << "level " << k << ": " << tpl.size() << std::endl;
+    }
+    return os;
+}
+
+
+
 static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Point centerP, float degree)
 {
     int width = src.cols;
     int height = src.rows;
     double angle = degree  * CV_PI / 180.; // 弧度
     double a = sin(angle), b = cos(angle);
-    int width_rotate = int(height * fabs(a) + width * fabs(b));
-    int height_rotate = int(width * fabs(a) + height * fabs(b));
+    // 适当增大一点宽高，防止像素不在图像内
+    int width_rotate = int(height * fabs(a) + width * fabs(b)) * 1.1;
+    int height_rotate = int(width * fabs(a) + height * fabs(b)) * 1.1;
     float map[6];
     cv::Mat map_matrix = cv::Mat(2, 3, CV_32F, map);
 // 旋转中心
     CvPoint2D32f center = cvPoint2D32f(centerP.x, centerP.y);
     CvMat map_matrix2 = map_matrix;
     cv2DRotationMatrix(center, degree, 1.0, &map_matrix2);
-    map[2] += (width_rotate - width) / 2;
-    map[5] += (height_rotate - height) / 2;
+    map[2] += (width_rotate - width) / 2.0;
+    map[5] += (height_rotate - height) / 2.0;
     cv::warpAffine(src, dst, map_matrix, cv::Size(width_rotate, height_rotate), 1, 0, 0);
     std::vector<float> rotate_matrix;
     rotate_matrix.push_back(map[0]);
@@ -67,10 +87,12 @@ int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> 
     std::cout << degree << std::endl;
     rotate_rect(rect, rotate_matrix);
 
-//    cv::circle(img_rotate, rect[0], 1, cv::Scalar(255,255,255));
-//    cv::circle(img_rotate, rect[1], 2, cv::Scalar(255,255,255));
-//    cv::circle(img_rotate, rect[2], 3, cv::Scalar(255,255,255));
-//    cv::circle(img_rotate, rect[3], 4, cv::Scalar(255,255,255));
+#ifdef DEBUG
+    cv::circle(img_rotate, rect[0], 1, cv::Scalar(255,255,255));
+    cv::circle(img_rotate, rect[1], 2, cv::Scalar(255,255,255));
+    cv::circle(img_rotate, rect[2], 3, cv::Scalar(255,255,255));
+    cv::circle(img_rotate, rect[3], 4, cv::Scalar(255,255,255));
+#endif
 
     int rect_width = rect[3].x - rect[0].x;
     int rect_height = rect[1].y - rect[0].y;
@@ -244,11 +266,11 @@ int free_tpls(TemplateStruct tpls[][MAX_DEGREE])
  *  @param src必须是二值化轮廓图
  *  @return 返回当前层上最佳的旋转步长
  * */
-static double get_angle_step(const cv::Mat &src, cv::Point center)
+static float get_angle_step(const cv::Mat &src, cv::Point center)
 {
     // 保留几个K，然后求平均值，用来排除外点的影响
-    int K = 10;
-    std::priority_queue<double> max_dist(K, -1);
+    int K = 50;
+    std::priority_queue<float> max_dist(K, -1);
     std::vector<cv::Point> points;
     // 在目前没有旋转的图片中不会出现因为旋转导致的白边，所以直接在全图搜索就行了，不用考虑别的
     for (int i = 0; i < src.rows; ++i) {
@@ -263,17 +285,21 @@ static double get_angle_step(const cv::Mat &src, cv::Point center)
             }
         }
     }
-    std::cout << "max dist....." << std::endl;
-    double average_max_dist = 0;
+//    std::cout << "max dist....." << std::endl;
+    float average_max_dist = 0;
     int i = 0;
     while (!max_dist.empty()) {
         average_max_dist += -max_dist.top();
         max_dist.pop();
     }
     average_max_dist /= K;
-    std::cout << "average_max_dist: " << average_max_dist << std::endl;
+//    std::cout << "average_max_dist: " << average_max_dist << std::endl;
 
-    std::cout <<"optimal angle step: " << acos(1 - 1 / (2 * average_max_dist * average_max_dist)) / CV_PI * 360 << " ~ " << acos(1 - 1 / (average_max_dist * average_max_dist)) / CV_PI * 360 << std::endl;
+    auto range_low = acos(1 - 1 / (2 * average_max_dist * average_max_dist)) / CV_PI * 360;
+    auto range_high = acos(1 - 1 / (average_max_dist * average_max_dist)) / CV_PI * 360;
+//    std::cout <<"optimal angle step: " << range_low << " ~ " << range_high << std::endl;
+
+    return std::max((range_low + range_high) / 2 ,1.0) ;
 
 #ifdef _DEBUG_
     cv::Mat tmp = src;
@@ -285,13 +311,24 @@ static double get_angle_step(const cv::Mat &src, cv::Point center)
 #endif
 }
 
-// 为koyo_tool_contour_parameter对应的工具建立模板
+/*
+ * 为koyo_tool_contour_parameter对应的工具建立模板, 同时计算出下列参数
+ * 1. UINT8 run_time_npyramid;
+ * 2. double search_angel_nstep[MAX_NUM_PYRAMID];
+ * 3. TemplateStruct tpls[MAX_NUM_PYRAMID][MAX_DEGREE];
+ */
 int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter)
 {
+    // 运行完成后需要将这个内容发送给嵌入式
+    Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
+
     TimeTracker tt1;
     tt1.start();
-    cv::Mat pyramid_templates[MAX_NUM_PYRAMID];
-    pyramid_templates[0] = src;
+    // todo 重构成vector版本
+//    cv::Mat pyramid_templates[MAX_NUM_PYRAMID];
+    std::vector<cv::Mat> pyramid_templates;
+    pyramid_templates.push_back(src);
+//    pyramid_templates[0] = src;
 
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
@@ -307,10 +344,12 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // 建立各层金字塔, 并确定最佳金字塔层数
     int optimal_pyr_level = 0;
-    std::cout << "size of this level: cols " << pyramid_templates[0].cols << ", rows" << pyramid_templates[0].rows << std::endl;
+//    std::cout << "size of this level: cols " << pyramid_templates[0].cols << ", rows" << pyramid_templates[0].rows << std::endl;
     for (int i = 0; i < MAX_NUM_PYRAMID - 1; ++i) {
-        cv::pyrDown(pyramid_templates[i], pyramid_templates[i+1]);
-        std::cout << "size of this level: cols " << pyramid_templates[i+1].cols << ", rows" << pyramid_templates[i+1].rows << std::endl;
+        cv::Mat next_level;
+        cv::pyrDown(pyramid_templates[i], next_level);
+//        std::cout << "size of this level: cols " << next_level.cols << ", rows" << next_level.rows << std::endl;
+        pyramid_templates.push_back(next_level);
 //        cv::imshow(std::string("pyr") + std::string(1, i - '0') , pyramid_templates[i+1]);
 //        cvWaitKey(0);
     }
@@ -324,10 +363,11 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // 图像的质心
     std::vector<cv::Point> centers;
-    std::vector<double> angle_steps = {1,1,1,1,1};
-    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
+    std::vector<float> angle_steps;
+    for (auto &pyr : pyramid_templates) {
+//    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
-        cv::Canny(pyramid_templates[i], cannyResult, sensitity_threshold_high, sensitity_threshold_low);
+        cv::Canny(pyr, cannyResult, sensitity_threshold_high, sensitity_threshold_low);
 
         cv::Point center;
         unsigned int num_of_contour;
@@ -335,8 +375,8 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
         centers.push_back(center);
 
         // 确定角度步长, 使用Canny的轮廓图来计算最远点
-        get_angle_step(cannyResult, center);
-
+        auto step = get_angle_step(cannyResult, center);
+        angle_steps.push_back(step);
 //        std::cout << num_of_contour << std::endl;
         if (num_of_contour <= MIN_CONTOUR_PYRA) {
             break;
@@ -353,27 +393,45 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // 对每层每个角度建立模板
     // tpls中的内存是动态分配的, 在建立完模板后需要释放所有的内存
-    TemplateStruct tpls[optimal_pyr_level][MAX_DEGREE];
+    // todo 重构成vector版本的
+//    TemplateStruct tpls[optimal_pyr_level][MAX_DEGREE];
+    std::vector<std::vector<TemplateStruct>> tpls;
     TimeTracker tt;
     tt.start();
+    // optimal_pyr_level肯定小于pyramid_templates的size
     for (int i = 0; i < optimal_pyr_level; ++i) {
+        std::vector<TemplateStruct> cur_level_tpl;
+        int k = 0;
         std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (int j = 0; j < MAX_DEGREE; j += angle_steps[i]) {
+        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+            TemplateStruct tpl;
             auto rect = cur_rect;
             cv::Mat rotated_image;
+            // 还是无法保证完全在图片框内
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
-            do_create_template(tpls[i][j], rotated_image, sensitity_threshold_low, sensitity_threshold_high, rect);
-            draw_template(rotated_image, tpls[i][j]);
+            do_create_template(tpl, rotated_image, sensitity_threshold_low, sensitity_threshold_high, rect);
+            cur_level_tpl.push_back(tpl);
+//            draw_template(rotated_image, tpl);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
 //            cvWaitKey(0);
         }
+        tpls.push_back(cur_level_tpl);
     }
     tt.stop();
     std::cout << tt.duration() << "ms" << std::endl;
 
-    for (int i = 0; i < optimal_pyr_level; ++i) {
-        std::cout << tpls[i][0].noOfCordinates << std::endl;
+#ifdef _DEBUG_
+    for (auto iter = tpls.cbegin(); iter != tpls.end(); ++iter) {
+        std::cout << iter->at(0).noOfCordinates << std::endl;
     }
+#endif
     //建立完模板需要将模板发送给客户端，需要发送的就是tpls这个数据结构
+
+    koyo_contour_template_runtime_param.run_time_npyramid = optimal_pyr_level;
+    koyo_contour_template_runtime_param.search_angel_nstep = angle_steps;
+    // todo 换成move操作会好一些吧
+    koyo_contour_template_runtime_param.tpls = tpls;
+//    print_tpls(std::cout, koyo_contour_template_runtime_param);
+    return 0;
 }

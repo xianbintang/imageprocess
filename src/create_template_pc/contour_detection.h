@@ -21,7 +21,6 @@ const int MIN_CONTOUR_PYRA = 100;
 #define CONTOUR_ACCURACY_MEDIUM   1
 #define CONTOUR_ACCURACY_HIGH     2
 
-// 轮廓参数
 typedef struct TemplateMatch
 {
     /* 模板的由下面的几个性质进行描述：
@@ -33,20 +32,18 @@ typedef struct TemplateMatch
      * 6. 模板的重心。
      * */
     int				noOfCordinates;		//Number of elements in coordinate array 边缘点的个数
-    cv::Point *cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
+    cv::Point			*cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
     int				modelHeight;		//Template height 模板的高度
     int				modelWidth;			//Template width 模板的宽度
-    double			*edgeMagnitude;		//gradient magnitude 所有边缘点的梯度值
+//    double			*edgeMagnitude;		//gradient magnitude 所有边缘点的梯度值
     double			*edgeDerivativeX;	//gradient in X direction
     double			*edgeDerivativeY;	//gradient in Y direction
-    cv::Point centerOfGravity;	//Center of gravity of template 重心
-    cv::Point rect[4];            //相对于左上点的坐标
+    cv::Point			centerOfGravity;	//Center of gravity of template 重心
+    cv::Point          rect[4];            //相对于左上点的坐标
     bool modelDefined;
-
 } TemplateStruct;
 
-
-// 工具级别的参数
+// 工具级别的参数, 客户端传下来的
 typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
 {
     UINT16 detect_region_type;   //检测区域形状
@@ -92,6 +89,13 @@ typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
     UINT8  bitmaps[0];           //检测区域外接矩形位图,
 } Koyo_Tool_Contour_Parameter;
 
+// 把这些东西发送给传感器
+
+typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
+    UINT8 run_time_npyramid;
+    std::vector<float> search_angel_nstep;
+    std::vector<std::vector<TemplateStruct>> tpls;
+} Koyo_Contour_Template_Runtime_Param;
 
 int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template);
 int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
