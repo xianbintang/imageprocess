@@ -11,7 +11,20 @@
 #include <queue>
 #include "contour_detection.h"
 
-std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
+{
+    cv::Mat gray;
+    if (!yuv) {
+        std::cout << "ERROR: yuv NULL pointer" << std::endl;
+    } else {
+        gray.create(height, width, CV_8UC1);
+        memcpy(gray.data, yuv, width * height * sizeof(unsigned char)); // 只读取y分量上的数据
+    }
+
+    return gray;
+}
+
+static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
 {
     // 先计算所有要使用的内存大小，然后分配空间，最后一点点将数据拷贝过去
     std::size_t buf_size = 0;
@@ -103,7 +116,7 @@ std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param 
 }
 
 //int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> buf)
-int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* buf)
+static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* buf)
 {
     std::size_t index = 0;
 
@@ -146,7 +159,7 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
 
             // 拷贝特征数据
 //            std::cout << "tpl no ofcoordinate: " << tpl.noOfCordinates << std::endl;
-            for (int i = 0; i < tpl.noOfCordinates; ++i) {
+            for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
 
                 cv::Point coord;
                 coord.x = *((short *) &buf[index]);
@@ -157,7 +170,7 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
                 tpl.cordinates.push_back(coord);
             }
 
-            for (int i = 0; i < tpl.noOfCordinates; ++i) {
+            for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
                 float edgeX = *((float*)&buf[index]);
                 index += sizeof(float);
                 tpl.edgeDerivativeX.push_back(edgeX);
@@ -173,21 +186,22 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
         koyo_contour_template_runtime_param.tpls.push_back(tpl_arr);
     }
 
+    return 0;
 }
 
-std::ostream &print_tpls(std::ostream &os, const Koyo_Contour_Template_Runtime_Param & rhl)
+static std::ostream &print_tpls(std::ostream &os, const Koyo_Contour_Template_Runtime_Param & rhl)
 {
     os << "runtime npyramid: " << static_cast<int>(rhl.run_time_npyramid) << std::endl;
     os << "angle steps each level: " << std::endl;
     int k = 0;
     for (auto angle : rhl.search_angel_nstep) {
-        os << "level " << k << ": " << angle << std::endl;
+        os << "level " << k++ << ": " << angle << std::endl;
     }
 
     k = 0;
     os << "templates each level: " << std::endl;
     for (auto tpl: rhl.tpls) {
-        os << "level " << k << ": " << tpl.size() << std::endl;
+        os << "level " << k++ << ": " << tpl.size() << ", Num of coordinate this level: " << tpl[0].noOfCordinates << std::endl;
     }
     return os;
 }
@@ -241,7 +255,7 @@ static int rotate_rect(std::vector<cv::Point> &rect, const std::vector<float> ro
     return 0;
 }
 
-int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template)
+static int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template)
 {
     auto degree = 360 - cv::fastAtan2(rect[1].y - rect[2].y, rect[2].x - rect[1].x);
     cv::Mat img_rotate;
@@ -323,7 +337,7 @@ static bool dist_to_lines_less_than(const std::vector<cv::Point> &rect, cv::Poin
 /*
  * rect是相对640*480图片的坐标
  * */
-int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_threshold,\
+static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_threshold,\
  double high_threshold, const std::vector<cv::Point> &rect)
 {
     int s32Ret = 0;
@@ -419,10 +433,10 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
 }
 
 // TODO 发送给客户端以后需要释放
-int free_tpls(TemplateStruct tpls[][MAX_DEGREE])
-{
-    return 0;
-}
+//int free_tpls(TemplateStruct tpls[][MAX_DEGREE])
+//{
+//    return 0;
+//}
 
 /*
  *  @param src必须是二值化轮廓图
@@ -461,16 +475,15 @@ static float get_angle_step(const cv::Mat &src, cv::Point center)
     auto range_high = acos(1 - 1 / (average_max_dist * average_max_dist)) / CV_PI * 360;
 //    std::cout <<"optimal angle step: " << range_low << " ~ " << range_high << std::endl;
 
-    return std::max((range_low + range_high) / 2 ,1.0) ;
-
 #ifdef _DEBUG_
     cv::Mat tmp = src;
-    for (int k = points.size() - K; k < points.size(); ++k) {
+    for (unsigned int k = points.size() - K; k < points.size(); ++k) {
         cv::circle(tmp, points[k], 20, cv::Scalar(255,255,255));
     }
-    cv::imshow("max dist", tmp);
-    cvWaitKey(0);
+//    cv::imshow("max dist", tmp);
+//    cvWaitKey(0);
 #endif
+    return std::max((range_low + range_high) / 2 ,1.0) ;
 }
 
 /*
@@ -479,16 +492,27 @@ static float get_angle_step(const cv::Mat &src, cv::Point center)
  * 2. double search_angel_nstep[MAX_NUM_PYRAMID];
  * 3. TemplateStruct tpls[MAX_NUM_PYRAMID][MAX_DEGREE];
  */
-int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter)
+
+//#define _DEBUG_
+#ifdef _DEBUG_
+std::vector<cv::Point> centers;
+std::vector<float> angle_steps;
+std::vector<cv::Mat> pyramid_templates;
+#else
+
+#endif
+
+static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
 {
     // 运行完成后需要将这个内容发送给嵌入式
-    Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
 
     TimeTracker tt1;
     tt1.start();
     // todo 重构成vector版本
 //    cv::Mat pyramid_templates[MAX_NUM_PYRAMID];
+#ifndef _DEBUG_
     std::vector<cv::Mat> pyramid_templates;
+#endif
     pyramid_templates.push_back(src);
 //    pyramid_templates[0] = src;
 
@@ -524,8 +548,10 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     }
 
     // 图像的质心
+#ifndef _DEBUG_
     std::vector<cv::Point> centers;
     std::vector<float> angle_steps;
+#endif
     for (auto &pyr : pyramid_templates) {
 //    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
@@ -539,7 +565,9 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
         // 确定角度步长, 使用Canny的轮廓图来计算最远点
         auto step = get_angle_step(cannyResult, center);
         angle_steps.push_back(step);
-//        std::cout << num_of_contour << std::endl;
+#ifdef _DEBUG_
+        std::cout << "no of coordinate this level: " << num_of_contour << std::endl;
+#endif
         if (num_of_contour <= MIN_CONTOUR_PYRA) {
             break;
         }
@@ -585,7 +613,7 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
 
 #ifdef _DEBUG_
     for (auto iter = tpls.cbegin(); iter != tpls.end(); ++iter) {
-        std::cout << iter->at(0).noOfCordinates << std::endl;
+//        std::cout << iter->at(0).noOfCordinates << std::endl;
     }
 #endif
     //建立完模板需要将模板发送给客户端，需要发送的就是tpls这个数据结构
@@ -594,24 +622,48 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     koyo_contour_template_runtime_param.search_angel_nstep = angle_steps;
     // todo 换成move操作会好一些吧
     koyo_contour_template_runtime_param.tpls = tpls;
+    return 0;
+}
 
-#define _DEBUG_
-#ifdef  _DEBUG_
+
+/*
+ *  提供给客户端的接口
+ * */
+char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter)
+{
+    // 获取灰度图
+    auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+    // 设置参数截取模板图片
+    cv::Mat template_roi;
+    std::vector<cv::Point> rect =  {
+            {koyo_tool_contour_parameter.detect_rect_x0, koyo_tool_contour_parameter.detect_rect_y0},
+            {koyo_tool_contour_parameter.detect_rect_x1, koyo_tool_contour_parameter.detect_rect_y1},
+            {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
+            {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
+    };
+    cutout_template_image(template_image, rect, template_roi);
+
+    // 使用截取出来的图片进行轮廓建立
+    Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
+    do_create_template(template_roi, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+
     // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     auto template_data = pack_template(koyo_contour_template_runtime_param);
+
+#ifdef  _DEBUG_
     Koyo_Contour_Template_Runtime_Param kctrp;
     // 要换成使用C语言的解析
     unpack_template(kctrp, template_data.release());
     print_tpls(std::cout, koyo_contour_template_runtime_param);
     std::cout << "next" << std::endl;
-    print_tpls(std::cout, kctrp);
+//    print_tpls(std::cout, kctrp);
 
     // 测试恢复出来的模板
-    for (int i = 0; i < optimal_pyr_level; ++i) {
+    for (int i = 0; i < kctrp.run_time_npyramid; ++i) {
         int k = 0;
         std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
         for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
-            TemplateStruct tpl = tpls[i][k++];
+            TemplateStruct tpl = kctrp.tpls[i][k++];
             auto rect = cur_rect;
             cv::Mat rotated_image;
             // 还是无法保证完全在图片框内
@@ -624,5 +676,7 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     }
 #endif
 
-    return 0;
+//    cv::imshow("eh" ,template_roi);
+//    cvWaitKey(0);
+    return template_data.release();
 }

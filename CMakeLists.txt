@@ -4,6 +4,7 @@ project(KOYO)
 set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_BUILD_TYPE "Release")
 
 
 if( CMAKE_BUILD_TYPE STREQUAL "Debug" )

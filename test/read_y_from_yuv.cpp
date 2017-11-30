@@ -23,9 +23,9 @@ cv::Mat read_y_from_yuv(UINT8 *yuv, const UINT16 width, const UINT16 height)
 int main(int argc, char **argv)
 {
     FILE *yuv_file = fopen(argv[1], "rb+");
-    UINT8 *buf = new UINT8[640 * 480];
-    fread(buf, 640 * 480, 1, yuv_file);
-    auto gray = read_y_from_yuv(buf, 640, 480);
+    UINT8 *buf = new UINT8[WIDTH * HEIGHT];
+    fread(buf, WIDTH * HEIGHT, 1, yuv_file);
+    auto gray = get_y_from_yuv(buf, WIDTH, HEIGHT);
     cv::imshow("gray", gray);
     cvWaitKey(0);
     return 0;

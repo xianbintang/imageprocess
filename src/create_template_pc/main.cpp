@@ -13,7 +13,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
-#define _GEAR2_TEST_
+#define _CPU_TEST_
 #ifdef _CPU_TEST_
     koyo_tool_contour_parameter.detect_rect_x0 = 196;
     koyo_tool_contour_parameter.detect_rect_y0 = 130;
@@ -104,23 +104,25 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 
 int main(int argc, char **argv)
 {
-    cv::Mat template_image = cv::imread(argv[1], 0);
 
+    std::string filename(argv[1]);
+    cv::Mat template_image;
+    UINT8 *buf = nullptr;
+    if(filename.substr(filename.size() - 3, 3) == "yuv") {
+        FILE *yuv_file = fopen(filename.c_str(), "rb+");
+        buf = new UINT8[WIDTH * HEIGHT];
+        fread(buf, WIDTH * HEIGHT, 1, yuv_file);
+    } else {
+        template_image = cv::imread(argv[1], 0);
+        buf = template_image.data;
+    }
 
     Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter;
     init_contour_parameter(koyo_tool_contour_parameter);
 
-    cv::Mat template_roi;
-    std::vector<cv::Point> rect =  {
-            {koyo_tool_contour_parameter.detect_rect_x0, koyo_tool_contour_parameter.detect_rect_y0},
-            {koyo_tool_contour_parameter.detect_rect_x1, koyo_tool_contour_parameter.detect_rect_y1},
-            {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
-            {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
-    };
-    cutout_template_image(template_image, rect, template_roi);
-    create_template(template_roi, koyo_tool_contour_parameter);
-//    cv::imshow("eh" ,template_roi);
-    cvWaitKey(0);
+    // 返回指向需要被发送的内存缓冲区的指针
+    create_template(buf, koyo_tool_contour_parameter);
+
     return 0;
 }
 
