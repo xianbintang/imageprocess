@@ -84,3 +84,7 @@ add_executable(create_template src/create_template_pc/contour_detection.h src/cr
 target_link_libraries(create_template ${OpenCV_LIBS})
 add_executable(hfmr src/HuFastMatchRegion.cpp)
 target_link_libraries(hfmr ${OpenCV_LIBS})
+
+
+add_executable(readyuv test/read_y_from_yuv.cpp)
+target_link_libraries(readyuv ${OpenCV_LIBS})

@@ -13,6 +13,8 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
+#define _GEAR2_TEST_
+#ifdef _CPU_TEST_
     koyo_tool_contour_parameter.detect_rect_x0 = 196;
     koyo_tool_contour_parameter.detect_rect_y0 = 130;
 
@@ -24,7 +26,77 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 
     koyo_tool_contour_parameter.detect_rect_x3 = 483;
     koyo_tool_contour_parameter.detect_rect_y3 = 130;
+#endif
 
+#ifdef _KOYO_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 150;
+    koyo_tool_contour_parameter.detect_rect_y0 = 182;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 134;
+    koyo_tool_contour_parameter.detect_rect_y1 = 255;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 393;
+    koyo_tool_contour_parameter.detect_rect_y2 = 313;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 407;
+    koyo_tool_contour_parameter.detect_rect_y3 = 238;
+#endif
+
+#ifdef _GEAR_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 142;
+    koyo_tool_contour_parameter.detect_rect_y0 = 51;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 143;
+    koyo_tool_contour_parameter.detect_rect_y1 = 402;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 491;
+    koyo_tool_contour_parameter.detect_rect_y2 = 402;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 491;
+    koyo_tool_contour_parameter.detect_rect_y3 = 53;
+#endif
+
+
+#ifdef _IRON_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 176;
+    koyo_tool_contour_parameter.detect_rect_y0 = 109;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 176;
+    koyo_tool_contour_parameter.detect_rect_y1 = 346;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 413;
+    koyo_tool_contour_parameter.detect_rect_y2 = 346;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 413;
+    koyo_tool_contour_parameter.detect_rect_y3 = 109;
+#endif
+
+#ifdef _TIMG_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 148;
+    koyo_tool_contour_parameter.detect_rect_y0 = 27;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 148;
+    koyo_tool_contour_parameter.detect_rect_y1 = 381;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 548;
+    koyo_tool_contour_parameter.detect_rect_y2 = 381;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 548;
+    koyo_tool_contour_parameter.detect_rect_y3 = 26;
+#endif
+#ifdef _GEAR2_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 225;
+    koyo_tool_contour_parameter.detect_rect_y0 = 100;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 225;
+    koyo_tool_contour_parameter.detect_rect_y1 = 351;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 519;
+    koyo_tool_contour_parameter.detect_rect_y2 = 351;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 519;
+    koyo_tool_contour_parameter.detect_rect_y3 = 100;
+#endif
     koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
     koyo_tool_contour_parameter.angle_range = 180;
 }
