@@ -44,10 +44,11 @@ std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param 
     memcpy(&buf[index], &koyo_contour_template_runtime_param.run_time_npyramid, sizeof(koyo_contour_template_runtime_param.run_time_npyramid));
     index += sizeof(koyo_contour_template_runtime_param.run_time_npyramid);
 
-    for (auto const &iter : koyo_contour_template_runtime_param.search_angel_nstep) {
-        memcpy(&buf[index], &iter, sizeof(float));
+    for (int i = 0; i < koyo_contour_template_runtime_param.run_time_npyramid; ++i) {
+        memcpy(&buf[index], &koyo_contour_template_runtime_param.search_angel_nstep[i], sizeof(float));
         index += sizeof(float);
     }
+//    std::cout << "hehe " << koyo_contour_template_runtime_param.search_angel_nstep.size() << std::endl;
 
     // 拷贝模板数据
     for (const auto &tpl_arr: koyo_contour_template_runtime_param.tpls) {
@@ -122,8 +123,9 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
         UINT16 tpl_size = *((UINT16*)&buf[index]);
         index += sizeof(UINT16);
 
-        TemplateStruct tpl;
+//        std::cout << "tpl_size: " << tpl_size << std::endl;
         for (int j = 0; j < tpl_size; ++j) {
+            TemplateStruct tpl;
             tpl.modelDefined = *((UINT8*)&buf[index]);
             index += sizeof(tpl.modelDefined);
 
@@ -143,16 +145,19 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
             index += sizeof(short);
 
             // 拷贝特征数据
+//            std::cout << "tpl no ofcoordinate: " << tpl.noOfCordinates << std::endl;
             for (int i = 0; i < tpl.noOfCordinates; ++i) {
 
                 cv::Point coord;
-                coord.x = *((UINT16*)&buf[index]);
+                coord.x = *((short *) &buf[index]);
                 index += sizeof(short);
 
-                coord.y = *((UINT16*)&buf[index]);
+                coord.y = *((short *) &buf[index]);
                 index += sizeof(short);
                 tpl.cordinates.push_back(coord);
+            }
 
+            for (int i = 0; i < tpl.noOfCordinates; ++i) {
                 float edgeX = *((float*)&buf[index]);
                 index += sizeof(float);
                 tpl.edgeDerivativeX.push_back(edgeX);
@@ -161,9 +166,11 @@ int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_r
                 index += sizeof(float);
                 tpl.edgeDerivativeY.push_back(edgeY);
 
+
             }
+            tpl_arr.push_back(tpl);
         }
-        tpl_arr.push_back(tpl);
+        koyo_contour_template_runtime_param.tpls.push_back(tpl_arr);
     }
 
 }
@@ -587,9 +594,35 @@ int create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_co
     koyo_contour_template_runtime_param.search_angel_nstep = angle_steps;
     // todo 换成move操作会好一些吧
     koyo_contour_template_runtime_param.tpls = tpls;
+
+#define _DEBUG_
+#ifdef  _DEBUG_
+    // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     auto template_data = pack_template(koyo_contour_template_runtime_param);
     Koyo_Contour_Template_Runtime_Param kctrp;
-    unpack_template(kctrp, template_data.get());
-//    print_tpls(std::cout, koyo_contour_template_runtime_param);
+    // 要换成使用C语言的解析
+    unpack_template(kctrp, template_data.release());
+    print_tpls(std::cout, koyo_contour_template_runtime_param);
+    std::cout << "next" << std::endl;
+    print_tpls(std::cout, kctrp);
+
+    // 测试恢复出来的模板
+    for (int i = 0; i < optimal_pyr_level; ++i) {
+        int k = 0;
+        std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
+        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+            TemplateStruct tpl = tpls[i][k++];
+            auto rect = cur_rect;
+            cv::Mat rotated_image;
+            // 还是无法保证完全在图片框内
+            auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
+            rotate_rect(rect, rotate_matrix);
+            draw_template(rotated_image, tpl);
+//            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
+//            cvWaitKey(0);
+        }
+    }
+#endif
+
     return 0;
 }
