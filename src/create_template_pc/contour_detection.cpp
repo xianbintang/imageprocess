@@ -54,7 +54,7 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
     // 分配空间
     std::unique_ptr<char[]> buf(new char[buf_size]);
 
-    std::cout << "hehe " << koyo_contour_template_runtime_param.search_angel_nstep.size() << std::endl;
+//    std::cout << "hehe " << koyo_contour_template_runtime_param.search_angel_nstep.size() << std::endl;
     std::size_t index = 0;
     memcpy(&buf[index], &koyo_contour_template_runtime_param.run_time_npyramid, sizeof(koyo_contour_template_runtime_param.run_time_npyramid));
     index += sizeof(koyo_contour_template_runtime_param.run_time_npyramid);
@@ -644,6 +644,35 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 }
 
 
+static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+{
+    std::cout << "test unpack template" << std::endl;
+    Koyo_Contour_Template_Runtime_Param kctrp;
+    // 要换成使用C语言的解析
+    unpack_template(kctrp, template_data.release());
+    print_tpls(std::cout, koyo_contour_template_runtime_param);
+    std::cout << "next" << std::endl;
+//    print_tpls(std::cout, kctrp);
+
+    // 测试恢复出来的模板
+    for (int i = 0; i < kctrp.run_time_npyramid; ++i) {
+        int k = 0;
+        std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
+        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+            TemplateStruct tpl = kctrp.tpls[i][k++];
+            auto rect = cur_rect;
+            cv::Mat rotated_image;
+            // 还是无法保证完全在图片框内
+            auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
+            rotate_rect(rect, rotate_matrix);
+            draw_template(rotated_image, tpl);
+//            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
+//            cvWaitKey(0);
+        }
+    }
+}
+
+
 /*
  *  提供给客户端的接口
  * */
@@ -670,30 +699,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     auto template_data = pack_template(koyo_contour_template_runtime_param);
 
 #ifdef  _DEBUG_
-    std::cout << "test unpack template" << std::endl;
-    Koyo_Contour_Template_Runtime_Param kctrp;
-    // 要换成使用C语言的解析
-    unpack_template(kctrp, template_data.release());
-    print_tpls(std::cout, koyo_contour_template_runtime_param);
-    std::cout << "next" << std::endl;
-//    print_tpls(std::cout, kctrp);
 
-    // 测试恢复出来的模板
-    for (int i = 0; i < kctrp.run_time_npyramid; ++i) {
-        int k = 0;
-        std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
-            TemplateStruct tpl = kctrp.tpls[i][k++];
-            auto rect = cur_rect;
-            cv::Mat rotated_image;
-            // 还是无法保证完全在图片框内
-            auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
-            rotate_rect(rect, rotate_matrix);
-            draw_template(rotated_image, tpl);
-//            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
-//            cvWaitKey(0);
-        }
-    }
 #endif
 
 //    cv::imshow("eh" ,template_roi);
