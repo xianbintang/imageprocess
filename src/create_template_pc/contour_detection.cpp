@@ -203,6 +203,13 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
     return 0;
 }
 
+static std::ostream &print_tpl(std::ostream &os, const TemplateStruct &templateStruct)
+{
+    std::cout << "template size, width: " << templateStruct.modelWidth <<\
+     ", height: " << templateStruct.modelHeight << std::endl;
+    std::cout << "Number of coordinate: " << templateStruct.noOfCordinates << std::endl;
+    std::cout << "center of gravity: " << templateStruct.centerOfGravity << std::endl;
+}
 static std::ostream &print_tpls(std::ostream &os, const Koyo_Contour_Template_Runtime_Param & rhl)
 {
     os << "runtime npyramid: " << static_cast<int>(rhl.run_time_npyramid) << std::endl;
@@ -537,8 +544,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
     } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
-        sensitity_threshold_low = 30;
-        sensitity_threshold_high = 150;
+        sensitity_threshold_low = 10;
+        sensitity_threshold_high = 90;
     } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_HIGH) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
@@ -644,15 +651,15 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 }
 
 
-static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char* template_data)
 {
-    std::cout << "test unpack template" << std::endl;
+    std::cout << std::endl << "--------test unpack template-----------" << std::endl;
     Koyo_Contour_Template_Runtime_Param kctrp;
     // 要换成使用C语言的解析
-    unpack_template(kctrp, template_data.release());
-    print_tpls(std::cout, koyo_contour_template_runtime_param);
-    std::cout << "next" << std::endl;
-//    print_tpls(std::cout, kctrp);
+    unpack_template(kctrp, template_data);
+//    print_tpls(std::cout, koyo_contour_template_runtime_param);
+    std::cout << "unpacked information" << std::endl;
+    print_tpls(std::cout, kctrp);
 
     // 测试恢复出来的模板
     for (int i = 0; i < kctrp.run_time_npyramid; ++i) {
@@ -669,6 +676,14 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, const
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
 //            cvWaitKey(0);
         }
+    }
+    // 打印倒数二层上的金字塔的模板图片以及相应信息
+    cv::imshow("origin", pyramid_templates[0]);
+    cvWaitKey(0);
+    for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 3; ++iter) {
+        auto target = *iter->cbegin();
+        draw_template(pyramid_template[kctrp.tpls.crend() - iter - 1], target);
+        print_tpl(std::cout,  target) << std::endl;
     }
 }
 
@@ -699,7 +714,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     auto template_data = pack_template(koyo_contour_template_runtime_param);
 
 #ifdef  _DEBUG_
-
+    print_debug_info(pyramid_templates, template_data.get());
 #endif
 
 //    cv::imshow("eh" ,template_roi);
