@@ -100,6 +100,7 @@ typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
 typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
     UINT8 run_time_npyramid;
     std::vector<float> search_angel_nstep;
+    std::vector<UINT16> search_rect_width;
     std::vector<std::vector<TemplateStruct>> tpls;
 } Koyo_Contour_Template_Runtime_Param;
 
