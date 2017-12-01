@@ -236,8 +236,8 @@ static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Poi
     double angle = degree  * CV_PI / 180.; // 弧度
     double a = sin(angle), b = cos(angle);
     // 适当增大一点宽高，防止像素不在图像内
-    int width_rotate = int(height * fabs(a) + width * fabs(b)) * 1.1;
-    int height_rotate = int(width * fabs(a) + height * fabs(b)) * 1.1;
+    int width_rotate = int(height * fabs(a) + width * fabs(b));
+    int height_rotate = int(width * fabs(a) + height * fabs(b));
     float map[6];
     cv::Mat map_matrix = cv::Mat(2, 3, CV_32F, map);
 // 旋转中心
@@ -672,7 +672,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
             // 还是无法保证完全在图片框内
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
-            draw_template(rotated_image, tpl);
+//            draw_template(rotated_image, tpl);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
 //            cvWaitKey(0);
         }
@@ -680,7 +680,8 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
     // 打印倒数二层上的金字塔的模板图片以及相应信息
     cv::imshow("origin", pyramid_templates[0]);
     cvWaitKey(0);
-    for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 3; ++iter) {
+    // 就算0度，pyramid_template和原来的图片还是不一样的。
+    for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 4; ++iter) {
         auto target = *iter->cbegin();
         draw_template(pyramid_template[kctrp.tpls.crend() - iter - 1], target);
         print_tpl(std::cout,  target) << std::endl;

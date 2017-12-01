@@ -13,7 +13,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
-#define _CHUANKOU_TEST_
+#define _KOYO_TEST_
 #ifdef _CPU_TEST_
     koyo_tool_contour_parameter.detect_rect_x0 = 196;
     koyo_tool_contour_parameter.detect_rect_y0 = 130;
@@ -110,7 +110,19 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.detect_rect_x3 = 540;
     koyo_tool_contour_parameter.detect_rect_y3 = 199;
 #endif
+#ifdef _LANCHUANKOU_TEST_
+    koyo_tool_contour_parameter.detect_rect_x0 = 211;
+    koyo_tool_contour_parameter.detect_rect_y0 = 53;
 
+    koyo_tool_contour_parameter.detect_rect_x1 = 165;
+    koyo_tool_contour_parameter.detect_rect_y1 = 374;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 592;
+    koyo_tool_contour_parameter.detect_rect_y2 = 434;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 635;
+    koyo_tool_contour_parameter.detect_rect_y3 = 122;
+#endif
 
     koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_LOW;
     koyo_tool_contour_parameter.angle_range = 180;
