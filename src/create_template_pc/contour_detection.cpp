@@ -541,14 +541,14 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
-        sensitity_threshold_low = 30;
-        sensitity_threshold_high = 150;
-    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 10;
-        sensitity_threshold_high = 90;
-    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_HIGH) {
+        sensitity_threshold_high = 80;
+    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
+    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_HIGH) {
+        sensitity_threshold_low = 60;
+        sensitity_threshold_high = 220;
     }
 
     // 建立各层金字塔, 并确定最佳金字塔层数
