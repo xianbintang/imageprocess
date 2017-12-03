@@ -681,9 +681,12 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
     cv::imshow("origin", pyramid_templates[0]);
     cvWaitKey(0);
     // 就算0度，pyramid_template和原来的图片还是不一样的。
+    std::cout << "optimal level: " << (int)kctrp.run_time_npyramid << std::endl;
     for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 4; ++iter) {
         auto target = *iter->cbegin();
-        draw_template(pyramid_template[kctrp.tpls.crend() - iter - 1], target);
+        auto level = kctrp.tpls.crend() - iter - 1;
+        draw_template(pyramid_template[level], target);
+        std::cout << "angle step:" << angle_steps[level] << std::endl;
         print_tpl(std::cout,  target) << std::endl;
     }
 }

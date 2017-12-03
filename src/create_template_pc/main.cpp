@@ -13,7 +13,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
-#define _KOYO_TEST_
+#define _LANCHUANKOU_TEST_
 #ifdef _CPU_TEST_
     koyo_tool_contour_parameter.detect_rect_x0 = 196;
     koyo_tool_contour_parameter.detect_rect_y0 = 130;
