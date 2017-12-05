@@ -9,6 +9,7 @@
 #include <iostream>
 #include <TimeTracker.h>
 #include <queue>
+#include <cstdio>
 #include "contour_detection.h"
 
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
@@ -120,12 +121,81 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
     float y2 = buf[buf_size - 8];
     printf("y1:%f  y2:%f\n", *((float*)&buf[buf_size - 4]), *((float*)&buf[buf_size - 8]));
 
+#ifdef _DEBUG_LEVEL_HIGH_
+    // 测试写入文件
+    TimeTracker timeTracker;
+    timeTracker.start();
+    FILE *outfile = fopen("template_file", "wb+");
+    if(!outfile) {
+        std::cout << "Error while open template file for write" << std::endl;
+        exit(-1);
+    }
+    int more_bytes = buf_size, count = 0;
+    int write_size = buf_size > 2048 ? 2048 : buf_size;
+    char *pb = buf.get();
+    while (count < buf_size && more_bytes > 0) {
+        fwrite(pb + count, write_size, 1, outfile);
+        count += 2048;
+        more_bytes -= 2048;
+//        std::cout << "count: " << count << std::endl;
+//        std::cout << "more: " << more_bytes << std::endl;
+        write_size = more_bytes > 2048 ? 2048 : more_bytes;
+    }
+    fclose(outfile);
+    timeTracker.stop();
+    std::cout << "write time: " << timeTracker.duration() << std::endl;
+
+
+    //测试读取文件, 再把template文件恢复出来
+    timeTracker.start();
+    FILE *infile = fopen("template_file", "rb+");
+    if(!infile) {
+        std::cout << "Error while open template file for write" << std::endl;
+        exit(-1);
+    }
+
+    pb = buf.get();
+
+    count = 0;
+    int rc;
+    while (0 < (rc = fread(pb + count, 2048, 1, infile))) {
+        count += 2048;
+    }
+
+    fclose(infile);
+    timeTracker.stop();
+    std::cout << "read time: " << timeTracker.duration() << std::endl;
+#endif
     return buf;
 }
 
 //int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> buf)
 static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* buf)
 {
+
+#ifdef _DEBUG_LEVEL_HIGH_
+    TimeTracker timeTracker;
+    timeTracker.start();
+    FILE *infile = fopen("template_file", "rb+");
+    if(!infile) {
+        std::cout << "Error while open template file for write" << std::endl;
+        exit(-1);
+    }
+
+    char *pb = (char *)malloc(50 * 1024 * 1024); //预分配30MB大小
+
+    int count = 0;
+    int rc;
+    while (0 < (rc = fread(pb + count, 2048, 1, infile))) {
+        count += 2048;
+    }
+
+    fclose(infile);
+    timeTracker.stop();
+    std::cout << "read time: " << timeTracker.duration() << std::endl;
+    buf = pb;
+#endif
+
     std::size_t index = 0;
 
     koyo_contour_template_runtime_param.run_time_npyramid = *((UINT8 *)&buf[index]);
@@ -682,7 +752,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
     cvWaitKey(0);
     // 就算0度，pyramid_template和原来的图片还是不一样的。
     std::cout << "optimal level: " << (int)kctrp.run_time_npyramid << std::endl;
-    for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 4; ++iter) {
+    for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 3; ++iter) {
         auto target = *iter->cbegin();
         auto level = kctrp.tpls.crend() - iter - 1;
         draw_template(pyramid_template[level], target);

@@ -6,6 +6,7 @@
 #define KOYO_CONTOUR_DETECTION_H
 
 #define _DEBUG_
+#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
 #include <memory>
@@ -16,7 +17,7 @@ using UINT16 = unsigned short;
 using INT8 = signed char;
 using UINT8 = unsigned char;
 using UINT32 = unsigned int;
-const int MIN_CONTOUR_PYRA = 100;
+const int MIN_CONTOUR_PYRA = 500;
 const int WIDTH = 640;
 const int HEIGHT = 480;
 
