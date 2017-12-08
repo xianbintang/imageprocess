@@ -255,15 +255,15 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
             }
 
             for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
-                float edgeX = *((float*)&buf[index]);
+                float edgeX = *((float *) &buf[index]);
                 index += sizeof(float);
                 tpl.edgeDerivativeX.push_back(edgeX);
+            }
 
+            for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
                 float edgeY = *((float*)&buf[index]);
                 index += sizeof(float);
                 tpl.edgeDerivativeY.push_back(edgeY);
-
-
             }
             tpl_arr.push_back(tpl);
         }
@@ -633,13 +633,19 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 //        cvWaitKey(0);
     }
 
-    // 对每一层使用高斯滤波处理
+    // 对每一层使用高斯滤波处理, 只对底层做高斯滤波
+#if 0
+    // 做过高斯滤波就不做滤波
     for (auto iter = std::begin(pyramid_templates); iter != std::end(pyramid_templates); ++iter) {
         cv::Mat after_gaus;
-        cv::GaussianBlur(*iter, after_gaus, cv::Size(3,3),3,3);
+        cv::GaussianBlur(*iter, after_gaus, cv::Size(5,5),5,5);
         *iter = after_gaus;
     }
-
+#endif
+    // 只对最底层进行滤波
+    cv::Mat after_gaus;
+    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),5,5);
+    pyramid_templates[0] = after_gaus;
     // 图像的质心
 #ifndef _DEBUG_
     std::vector<cv::Point> centers;
