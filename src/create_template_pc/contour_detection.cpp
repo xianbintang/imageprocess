@@ -644,7 +644,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 #endif
     // 只对最底层进行滤波
     cv::Mat after_gaus;
-    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),5,5);
+    // sigma值越大越模糊
+    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),0.5,0);
     pyramid_templates[0] = after_gaus;
     // 图像的质心
 #ifndef _DEBUG_
