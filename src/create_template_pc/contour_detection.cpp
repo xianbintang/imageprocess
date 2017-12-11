@@ -12,6 +12,31 @@
 #include <cstdio>
 #include "contour_detection.h"
 
+static void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+static void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
     cv::Mat gray;
@@ -443,6 +468,12 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double lo
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
 
+    int magic = std::rand();
+    std::string filenamex = "gx" + std::to_string(magic);
+    std::string filenamey = "gy" + std::to_string(magic);
+    saveMatf(gx, filenamex.c_str());
+    saveMatf(gy, filenamey.c_str());
+
     cv::Mat binaryContour;
     cv::Canny(src, binaryContour, low_threshold, high_threshold);
 
@@ -653,6 +684,14 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     std::vector<float> angle_steps;
     std::vector<UINT16> search_rect_width;
 #endif
+
+#ifdef _DEBUG_
+    //保存各层金字塔txt图
+    for (int i = 0; i < pyramid_templates.size(); ++i) {
+        std::string filename = "gray" + std::to_string(i) + ".txt";
+        saveMat(pyramid_templates[i], filename.c_str());
+    }
+#endif
     for (auto &pyr : pyramid_templates) {
 //    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
@@ -694,7 +733,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
         std::vector<TemplateStruct> cur_level_tpl;
         int k = 0;
         std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+//        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+        for (double j = 0.0; j < 0.9; j += angle_steps[i]) {
             TemplateStruct tpl;
             auto rect = cur_rect;
             cv::Mat rotated_image;
@@ -784,11 +824,12 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-    cutout_template_image(template_image, rect, template_roi);
+//    cutout_template_image(template_image, rect, template_roi);
 
     // 使用截取出来的图片进行轮廓建立
     Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
-    do_create_template(template_roi, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+//    do_create_template(template_roi, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+    do_create_template(template_image, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
 
     // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     std::cout << "test pack template" << std::endl;
