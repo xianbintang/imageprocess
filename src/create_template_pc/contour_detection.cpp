@@ -578,6 +578,18 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
     return std::max((range_low + range_high) / 2 ,1.0) ;
 }
 
+static void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
 /*
  * 为koyo_tool_contour_parameter对应的工具建立模板, 同时计算出下列参数
  * 1. UINT8 run_time_npyramid;
@@ -651,6 +663,14 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     std::vector<cv::Point> centers;
     std::vector<float> angle_steps;
     std::vector<UINT16> search_rect_width;
+#endif
+
+#ifdef _DEBUG_
+    //保存各层金字塔txt图
+    for (int i = 0; i < pyramid_templates.size(); ++i) {
+        std::string filename = "gray" + std::to_string(i) + ".txt";
+        saveMat(pyramid_templates[i], filename.c_str());
+    }
 #endif
     for (auto &pyr : pyramid_templates) {
 //    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
@@ -783,11 +803,12 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-    cutout_template_image(template_image, rect, template_roi);
+//    cutout_template_image(template_image, rect, template_roi);
 
     // 使用截取出来的图片进行轮廓建立
     Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
-    do_create_template(template_roi, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+//    do_create_template(template_roi, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+    do_create_template(template_image, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
 
     // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     std::cout << "test pack template" << std::endl;

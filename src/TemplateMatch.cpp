@@ -305,14 +305,14 @@ double FindGeoMatchModelRotateTpl(TemplateMatch * tpls, const IMat * srcarr,doub
                     iSx = _Sdx[curX]; // get curresponding  X derivative from source image
                     iSy = _Sdy[curX];// get curresponding  Y derivative from source image
 
-                    if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0)) {
+//                    if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0)) {
                         //partial Sum  = Sum of(((Source X derivative* Template X drivative) + Source Y derivative * Template Y derivative)) / Edge magnitude of(Template)* edge magnitude of(Source))
 //                        partialSum =
 //                                partialSum + ((iSx * iTx) + (iSy * iTy)) * (tpl->edgeMagnitude[m] * matGradMag[curX][curY]);
 
                         partialSum =
                                 partialSum + ((edgeX[curY][curX]* iTx) + (edgeY[curY][curX]* iTy));
-                    }
+//                    }
 
                     sumOfCoords = m + 1;
                     partialScore = partialSum / sumOfCoords;
