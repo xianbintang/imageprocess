@@ -12,6 +12,31 @@
 #include <cstdio>
 #include "contour_detection.h"
 
+static void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+static void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
     cv::Mat gray;
@@ -443,6 +468,12 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double lo
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
 
+    int magic = std::rand();
+    std::string filenamex = "gx" + std::to_string(magic);
+    std::string filenamey = "gy" + std::to_string(magic);
+    saveMatf(gx, filenamex.c_str());
+    saveMatf(gy, filenamey.c_str());
+
     cv::Mat binaryContour;
     cv::Canny(src, binaryContour, low_threshold, high_threshold);
 
@@ -578,18 +609,6 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
     return std::max((range_low + range_high) / 2 ,1.0) ;
 }
 
-static void saveMat(cv::Mat mat, const char *path) {
-    FILE *fp = fopen(path, "w");
-    int i,j;
-    for (i = 0; i < mat.rows; ++i) {
-        for (j = 0; j < mat.cols; ++j) {
-//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
-            fprintf(fp, "%d ", mat.at<uchar>(i, j));
-        }
-        fprintf(fp, "\n");
-    }
-    fclose(fp);
-}
 /*
  * 为koyo_tool_contour_parameter对应的工具建立模板, 同时计算出下列参数
  * 1. UINT8 run_time_npyramid;
@@ -713,7 +732,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
         std::vector<TemplateStruct> cur_level_tpl;
         int k = 0;
         std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+//        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+        for (double j = 0.0; j < 0.9; j += angle_steps[i]) {
             TemplateStruct tpl;
             auto rect = cur_rect;
             cv::Mat rotated_image;
