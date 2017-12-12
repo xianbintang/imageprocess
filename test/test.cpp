@@ -7,7 +7,30 @@
 #include <iostream>
 #include <opencv/highgui.h>
 #include <opencv/cv.hpp>
+#include <bitset>
 
+void displayTextImagebitMat(const char *path, int width, int height)
+{
+    IplImage *img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1);
+    memset(img->imageData, 0, sizeof(char) * width * height);
+    std::ifstream fin(path);
+    int num = 0;
+
+    unsigned char* prow = (unsigned char*)(img->imageData);
+    while(fin >> num) {
+        std::cout << num << std::endl;
+        for (int i = 0; i < 8; ++i) {
+            auto bit = std::bitset<10>(num);
+            *prow = bit[7] * 255;
+            ++prow;
+            num <<= 1;
+        }
+    }
+
+    cvShowImage("img", img);
+    cv::waitKey(0);
+    cvSaveImage("E://tmp//tmp.bmp", img);
+}
 void displayTextImage(const char *path, int width, int height)
 {
     IplImage *img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1);
@@ -99,5 +122,7 @@ int main(int argc, char ** argv)
         displayTextImagef(argv[1], atoi(argv[2]), atoi(argv[3]));
     else if(atoi(argv[4]) == 2)
         displayTextImageS8(argv[1], atoi(argv[2]), atoi(argv[3]));
-    return 0;
+    else if(atoi(argv[4]) == 3)
+        displayTextImagebitMat(argv[1], atoi(argv[2]), atoi(argv[3]));
+        return 0;
 }
