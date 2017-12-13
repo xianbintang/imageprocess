@@ -484,16 +484,16 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::Mat binaryContour, before_filter;
     cv::Canny(src, before_filter, low_threshold, high_threshold);
     //canny的结果和bitmap相与
-    cv::imshow("before", before_filter);
+//    cv::imshow("before", before_filter);
     // 把bitmap膨胀一下
     cv::Mat dialBitmap;
     Dilation(bitmap, dialBitmap, 3);
     cv::threshold(dialBitmap, bitmap, 10, 255, CV_THRESH_BINARY);
 
-    cv::imshow("bitmat", bitmap);
+//    cv::imshow("bitmat", bitmap);
     cv::bitwise_and(before_filter, bitmap, binaryContour);
-    cv::imshow("binary", binaryContour);
-    cv::waitKey(0);
+//    cv::imshow("binary", binaryContour);
+//    cv::waitKey(0);
 
     const short *_sdx;
     const short *_sdy;
@@ -683,6 +683,16 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     cv::Mat bitMap ;
     bitMap.create(cv::Size(src.cols, src.rows), CV_8UC1);
     bitmap2Mat(src, bitMap, koyo_tool_contour_parameter.bitmaps, src.cols, src.rows);
+#ifdef _DEBUG_
+    for (int i = 186; i < 211; ++i) {
+        for (int j = 107; j < 167; ++j) {
+            bitMap.at<uchar>(i,j) = 0;
+        }
+    }
+    cv::imshow("erased", bitMap);
+    cv::waitKey(0);
+#endif
+
     pyramid_bitmaps.push_back(bitMap);
 
     // 建立各层金字塔, 并确定最佳金字塔层数
@@ -868,10 +878,11 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 
 #ifdef _DEBUG_
 //     读取文件，恢复位图
+    cv::imwrite("data//template_img.jpg", template_roi);
     UINT8 *bitmap = new UINT8[(sizeof(uchar) * template_roi.rows * template_roi.cols)];
     int num;
     int k = 0;
-    std::ifstream fin("data//contour.txt");
+    std::ifstream fin("data//contour_erased.txt");
     if(!fin.is_open()) {
         exit(-1);
     }
@@ -881,6 +892,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     koyo_tool_contour_parameter.bitmaps = bitmap;
     koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
     koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
+
 
 #endif
 
