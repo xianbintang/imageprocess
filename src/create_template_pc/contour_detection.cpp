@@ -568,8 +568,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-    cv::imshow("hehe", src);
-    cvWaitKey(0);
+//    cv::imshow("hehe", src);
+//    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
@@ -689,8 +689,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
             bitMap.at<uchar>(i,j) = 0;
         }
     }
-    cv::imshow("erased", bitMap);
-    cv::waitKey(0);
+//    cv::imshow("erased", bitMap);
+//    cv::waitKey(0);
 #endif
 
     pyramid_bitmaps.push_back(bitMap);
@@ -833,13 +833,15 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
             draw_template(rotated_image, tpl);
+            if(static_cast<int>(j) % 60 == 0)
+                cv::imwrite("data//" + std::string("level") + std::to_string(i) + std::string("angle")+ std::to_string(j) + ".jpg", rotated_image);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
 //            cvWaitKey(0);
         }
     }
     // 打印倒数二层上的金字塔的模板图片以及相应信息
-    cv::imshow("origin", pyramid_templates[0]);
-    cvWaitKey(0);
+//    cv::imshow("origin", pyramid_templates[0]);
+//    cvWaitKey(0);
     // 就算0度，pyramid_template和原来的图片还是不一样的。
     std::cout << "optimal level: " << (int)kctrp.run_time_npyramid << std::endl;
     for (auto iter = kctrp.tpls.crbegin(); iter != kctrp.tpls.crbegin() + 3; ++iter) {
@@ -849,6 +851,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
         std::cout << "angle step:" << angle_steps[level] << std::endl;
         print_tpl(std::cout,  target) << std::endl;
     }
+
 }
 
 
