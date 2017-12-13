@@ -10,7 +10,34 @@
 #include <TimeTracker.h>
 #include <queue>
 #include <cstdio>
+#include <fstream>
+#include <basetsd.h>
 #include "contour_detection.h"
+
+static void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+static void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
 
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
@@ -425,10 +452,21 @@ static bool dist_to_lines_less_than(const std::vector<cv::Point> &rect, cv::Poin
     dist_to_line(rect[2], rect[3], target) < min_dist || dist_to_line(rect[3], rect[0], target) < min_dist));
 }
 
+
+void Dilation(const cv::Mat &src, cv::Mat &dilation_dst, int size )
+{
+    int dilation_type = cv::MORPH_RECT;
+
+    cv::Mat element = cv::getStructuringElement( dilation_type,
+                                         cv::Size( size, size));
+    ///膨胀操作
+    dilate( src, dilation_dst, element);
+}
+
 /*
  * rect是相对640*480图片的坐标
  * */
-static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double low_threshold,\
+static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv::Mat &bitmap, double low_threshold,\
  double high_threshold, const std::vector<cv::Point> &rect)
 {
     int s32Ret = 0;
@@ -443,8 +481,19 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double lo
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
 
-    cv::Mat binaryContour;
-    cv::Canny(src, binaryContour, low_threshold, high_threshold);
+    cv::Mat binaryContour, before_filter;
+    cv::Canny(src, before_filter, low_threshold, high_threshold);
+    //canny的结果和bitmap相与
+    cv::imshow("before", before_filter);
+    // 把bitmap膨胀一下
+    cv::Mat dialBitmap;
+    Dilation(bitmap, dialBitmap, 3);
+    cv::threshold(dialBitmap, bitmap, 10, 255, CV_THRESH_BINARY);
+
+    cv::imshow("bitmat", bitmap);
+    cv::bitwise_and(before_filter, bitmap, binaryContour);
+    cv::imshow("binary", binaryContour);
+    cv::waitKey(0);
 
     const short *_sdx;
     const short *_sdy;
@@ -463,7 +512,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, double lo
             p.x = j;
             p.y = i;
             // todo 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
-            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)) {
+            if (U8 /*&& dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)*/) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
@@ -595,14 +644,22 @@ std::vector<UINT16> search_rect_width;
 
 #endif
 
+static void bitmap2Mat(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 width, UINT16 height) {
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            dst.at<uchar>(i, j) = bitmap[i * width + j];
+        }
+    }
+
+}
+
 static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
 {
     // 运行完成后需要将这个内容发送给嵌入式
 
     TimeTracker tt1;
     tt1.start();
-    // todo 重构成vector版本
-//    cv::Mat pyramid_templates[MAX_NUM_PYRAMID];
+    std::vector<cv::Mat> pyramid_bitmaps;
 #ifndef _DEBUG_
     std::vector<cv::Mat> pyramid_templates;
 #endif
@@ -620,15 +677,28 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
         sensitity_threshold_low = 60;
         sensitity_threshold_high = 220;
     }
+    // todo bitmap转图像
+//    cv::imshow("test", src);
+//    cv::waitKey(0);
+    cv::Mat bitMap ;
+    bitMap.create(cv::Size(src.cols, src.rows), CV_8UC1);
+    bitmap2Mat(src, bitMap, koyo_tool_contour_parameter.bitmaps, src.cols, src.rows);
+    pyramid_bitmaps.push_back(bitMap);
 
     // 建立各层金字塔, 并确定最佳金字塔层数
+    // todo 这里同时把客户端传来的bitmap也进行金字塔构建
     int optimal_pyr_level = 0;
+//    cv::imshow("template_roi", src);
+//    cv::waitKey(0);
 //    std::cout << "size of this level: cols " << pyramid_templates[0].cols << ", rows" << pyramid_templates[0].rows << std::endl;
     for (int i = 0; i < MAX_NUM_PYRAMID - 1; ++i) {
         cv::Mat next_level;
+        cv::Mat next_level_bmap;
+        cv::pyrDown(pyramid_bitmaps[i], next_level_bmap);
         cv::pyrDown(pyramid_templates[i], next_level);
 //        std::cout << "size of this level: cols " << next_level.cols << ", rows" << next_level.rows << std::endl;
         pyramid_templates.push_back(next_level);
+        pyramid_bitmaps.push_back(next_level_bmap);
 //        cv::imshow(std::string("pyr") + std::string(1, i - '0') , pyramid_templates[i+1]);
 //        cvWaitKey(0);
     }
@@ -697,10 +767,14 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
             TemplateStruct tpl;
             auto rect = cur_rect;
             cv::Mat rotated_image;
+            cv::Mat rotated_image_bmap;
             // 还是无法保证完全在图片框内
+            // todo 客户端下发的bitmap也要旋转
+            auto rotate_bitmap = rotate_image(pyramid_bitmaps[i], rotated_image_bmap, centers[i], j);
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
-            do_create_template(tpl, rotated_image, sensitity_threshold_low, sensitity_threshold_high, rect);
+            // todo 多传一个参数，旋转后的bitmap
+            do_create_template(tpl, rotated_image, rotated_image_bmap, sensitity_threshold_low, sensitity_threshold_high, rect);
             cur_level_tpl.push_back(tpl);
 //            draw_template(rotated_image, tpl);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
@@ -748,7 +822,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
             // 还是无法保证完全在图片框内
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
-//            draw_template(rotated_image, tpl);
+            draw_template(rotated_image, tpl);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
 //            cvWaitKey(0);
         }
@@ -784,6 +858,31 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
     cutout_template_image(template_image, rect, template_roi);
+#ifdef _DEBUG_
+//    cv::Mat tmp = template_roi;
+//    cv::Mat contour;
+//    cv::Canny(tmp, contour, 30, 150);
+//     todo 可能得把这个膨胀一下
+//    saveMat(contour, "data//contour.txt");
+#endif
+
+#ifdef _DEBUG_
+//     读取文件，恢复位图
+    UINT8 *bitmap = new UINT8[(sizeof(uchar) * template_roi.rows * template_roi.cols)];
+    int num;
+    int k = 0;
+    std::ifstream fin("data//contour.txt");
+    if(!fin.is_open()) {
+        exit(-1);
+    }
+    while(fin >> num && k < template_roi.rows * template_roi.cols) {
+        bitmap[k++] = num;
+    }
+    koyo_tool_contour_parameter.bitmaps = bitmap;
+    koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
+    koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
+
+#endif
 
     // 使用截取出来的图片进行轮廓建立
     Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
