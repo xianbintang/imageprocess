@@ -89,3 +89,6 @@ target_link_libraries(hfmr ${OpenCV_LIBS})
 
 add_executable(readyuv test/read_y_from_yuv.cpp)
 target_link_libraries(readyuv ${OpenCV_LIBS})
+
+add_executable(testRotate test/rotateBitMap.cpp)
+target_link_libraries(testRotate ${OpenCV_LIBS})
