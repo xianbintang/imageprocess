@@ -17,7 +17,7 @@ using UINT16 = unsigned short;
 using INT8 = signed char;
 using UINT8 = unsigned char;
 using UINT32 = unsigned int;
-const int MIN_CONTOUR_PYRA = 80;
+const int MIN_CONTOUR_PYRA = 30;
 const int WIDTH = 640;
 const int HEIGHT = 480;
 

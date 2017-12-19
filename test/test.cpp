@@ -8,6 +8,7 @@
 #include <opencv/highgui.h>
 #include <opencv/cv.hpp>
 #include <bitset>
+#include <TimeTracker.h>
 
 void displayTextImagebitMat(const char *path, int width, int height)
 {

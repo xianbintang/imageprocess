@@ -612,8 +612,8 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
 //    std::cout << "average_max_dist: " << average_max_dist << std::endl;
 
     search_rect_width.push_back(static_cast<UINT16>(average_max_dist));
-    auto range_low = acos(1 - 1 / (2 * average_max_dist * average_max_dist)) / CV_PI * 360;
-    auto range_high = acos(1 - 1 / (average_max_dist * average_max_dist)) / CV_PI * 360;
+    auto range_low = acos(1 - 1 / (2 * average_max_dist * average_max_dist)) / CV_PI * 180;
+    auto range_high = acos(1 - 2 / (average_max_dist * average_max_dist)) / CV_PI * 180;
 //    std::cout <<"optimal angle step: " << range_low << " ~ " << range_high << std::endl;
 
 #ifdef _DEBUG_
@@ -666,9 +666,10 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     pyramid_templates.push_back(src);
 //    pyramid_templates[0] = src;
 
+    // todo bitmap转图像
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
-        sensitity_threshold_low = 10;
+        sensitity_threshold_low = 5;
         sensitity_threshold_high = 80;
     } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 30;
@@ -677,7 +678,6 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
         sensitity_threshold_low = 60;
         sensitity_threshold_high = 220;
     }
-    // todo bitmap转图像
 //    cv::imshow("test", src);
 //    cv::waitKey(0);
     cv::Mat bitMap ;
@@ -835,8 +835,8 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
             draw_template(rotated_image, tpl);
             if(static_cast<int>(j) % 60 == 0)
                 cv::imwrite("data//" + std::string("level") + std::to_string(i) + std::string("angle")+ std::to_string(j) + ".jpg", rotated_image);
-//            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
-//            cvWaitKey(0);
+            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
+            cvWaitKey(0);
         }
     }
     // 打印倒数二层上的金字塔的模板图片以及相应信息
@@ -872,11 +872,11 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     };
     cutout_template_image(template_image, rect, template_roi);
 #ifdef _DEBUG_
-//    cv::Mat tmp = template_roi;
-//    cv::Mat contour;
-//    cv::Canny(tmp, contour, 30, 150);
+    cv::Mat tmp = template_roi;
+    cv::Mat contour;
+    cv::Canny(tmp, contour, 30, 150);
 //     todo 可能得把这个膨胀一下
-//    saveMat(contour, "data//contour.txt");
+    saveMat(contour, "data//contour_erased.txt");
 #endif
 
 #ifdef _DEBUG_
@@ -895,8 +895,6 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     koyo_tool_contour_parameter.bitmaps = bitmap;
     koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
     koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
-
-
 #endif
 
     // 使用截取出来的图片进行轮廓建立
