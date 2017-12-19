@@ -92,3 +92,5 @@ target_link_libraries(readyuv ${OpenCV_LIBS})
 
 add_executable(testRotate test/rotateBitMap.cpp)
 target_link_libraries(testRotate ${OpenCV_LIBS})
+
+add_library(create_template_lib STATIC src/create_template_pc/contour_detection.h src/create_template_pc/contour_detection.cpp)
