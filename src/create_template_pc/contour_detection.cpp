@@ -684,6 +684,7 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     bitMap.create(cv::Size(src.cols, src.rows), CV_8UC1);
     bitmap2Mat(src, bitMap, koyo_tool_contour_parameter.bitmaps, src.cols, src.rows);
 #ifdef _DEBUG_
+#if 0
     for (int i = 186; i < 211; ++i) {
         for (int j = 107; j < 167; ++j) {
             bitMap.at<uchar>(i,j) = 0;
@@ -691,6 +692,7 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     }
 //    cv::imshow("erased", bitMap);
 //    cv::waitKey(0);
+#endif
 #endif
 
     pyramid_bitmaps.push_back(bitMap);
@@ -874,7 +876,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 #ifdef _DEBUG_
     cv::Mat tmp = template_roi;
     cv::Mat contour;
-    cv::Canny(tmp, contour, 30, 150);
+    cv::Canny(tmp, contour, 5, 80);
 //     todo 可能得把这个膨胀一下
     saveMat(contour, "data//contour_erased.txt");
 #endif

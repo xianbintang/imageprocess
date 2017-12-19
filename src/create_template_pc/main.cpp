@@ -13,7 +13,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
-#define _VI42_
+#define _CPU_TEST_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -181,7 +181,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.detect_rect_y3 = 122;
 #endif
 
-    koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
+    koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_LOW;
     koyo_tool_contour_parameter.angle_range = 180;
 }
 
