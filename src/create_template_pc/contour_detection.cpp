@@ -481,6 +481,9 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
 
+    cv::Mat binaryContour;
+    cv::Canny(src, binaryContour, low_threshold, high_threshold);
+#if 0
     cv::Mat binaryContour, before_filter;
     cv::Canny(src, before_filter, low_threshold, high_threshold);
     //canny的结果和bitmap相与
@@ -494,6 +497,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::bitwise_and(before_filter, bitmap, binaryContour);
 //    cv::imshow("binary", binaryContour);
 //    cv::waitKey(0);
+#endif
 
     const short *_sdx;
     const short *_sdy;
@@ -669,7 +673,7 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     // todo bitmap转图像
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
-        sensitity_threshold_low = 5;
+        sensitity_threshold_low = 10;
         sensitity_threshold_high = 80;
     } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 30;
@@ -837,7 +841,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
             draw_template(rotated_image, tpl);
             if(static_cast<int>(j) % 60 == 0)
                 cv::imwrite("data//" + std::string("level") + std::to_string(i) + std::string("angle")+ std::to_string(j) + ".jpg", rotated_image);
-            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
+//            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
             cvWaitKey(0);
         }
     }
