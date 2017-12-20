@@ -730,7 +730,8 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
 #endif
     // 只对最底层进行滤波
     cv::Mat after_gaus;
-    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),5,5);
+    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),0);
+
     pyramid_templates[0] = after_gaus;
     // 图像的质心
 #ifndef _DEBUG_
@@ -739,6 +740,9 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     std::vector<UINT16> search_rect_width;
 #endif
     for (auto &pyr : pyramid_templates) {
+#ifdef  _DEBUG_
+        saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
+#endif
 //    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
         cv::Canny(pyr, cannyResult, sensitity_threshold_high, sensitity_threshold_low);
@@ -876,7 +880,8 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-    cutout_template_image(template_image, rect, template_roi);
+//    cutout_template_image(template_image, rect, template_roi);
+    template_roi = template_image;
 #ifdef _DEBUG_
     cv::Mat tmp = template_roi;
     cv::Mat contour;

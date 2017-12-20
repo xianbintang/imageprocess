@@ -94,3 +94,6 @@ add_executable(testRotate test/rotateBitMap.cpp)
 target_link_libraries(testRotate ${OpenCV_LIBS})
 
 add_library(create_template_lib STATIC src/create_template_pc/contour_detection.h src/create_template_pc/contour_detection.cpp)
+
+add_executable(myFilter test/myFilter.cpp)
+target_link_libraries(myFilter ${OpenCV_LIBS})
