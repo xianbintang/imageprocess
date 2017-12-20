@@ -516,7 +516,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
             p.x = j;
             p.y = i;
             // todo 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
-            if (U8 /*&& dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)*/) {
+            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
