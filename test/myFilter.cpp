@@ -8,6 +8,8 @@
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
+#include <basetsd.h>
+#include "../src/create_template_pc/contour_detection.h"
 
 static void saveMat(cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
@@ -21,6 +23,20 @@ static void saveMat(cv::Mat mat, const char *path) {
     }
     fclose(fp);
 }
+
+static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
+{
+    cv::Mat gray;
+    if (!yuv) {
+        std::cout << "ERROR: yuv NULL pointer" << std::endl;
+    } else {
+        gray.create(height, width, CV_8UC1);
+        memcpy(gray.data, yuv, width * height * sizeof(unsigned char)); // 只读取y分量上的数据
+    }
+
+    return gray;
+}
+
 int main(int argc, char ** argv)
 {
     cv::Mat src, dst;
@@ -46,8 +62,21 @@ int main(int argc, char ** argv)
         }
     }
 
-    src = cv::imread(argv[1], -1);
-    cv::filter2D(src, dst, -1, kernel, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
+    std::string filename(argv[1]);
+    cv::Mat template_image;
+    UINT8 *buf = nullptr;
+    if(filename.substr(filename.size() - 3, 3) == "yuv") {
+        FILE *yuv_file = fopen(filename.c_str(), "rb+");
+        buf = new UINT8[WIDTH * HEIGHT];
+        fread(buf, WIDTH * HEIGHT, 1, yuv_file);
+    } else {
+        template_image = cv::imread(argv[1], 0);
+        buf = template_image.data;
+    }
+
+    template_image = get_y_from_yuv(buf, WIDTH, HEIGHT);
+//    cv::filter2D(template_image, dst, -1, kernel, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
+    cv::filter2D(template_image, dst, -1, kernel, cv::Point(-1, -1), 0);
 //    cv::imshow("hehe", dst);
 //    cvWaitKey(0);
     saveMat(dst, "dst.txt");

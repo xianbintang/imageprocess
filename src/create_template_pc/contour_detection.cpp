@@ -880,8 +880,8 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-//    cutout_template_image(template_image, rect, template_roi);
-    template_roi = template_image;
+    cutout_template_image(template_image, rect, template_roi);
+//    template_roi = template_image;
 #ifdef _DEBUG_
     cv::Mat tmp = template_roi;
     cv::Mat contour;
