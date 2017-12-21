@@ -572,8 +572,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-//    cv::imshow("hehe", src);
-//    cvWaitKey(0);
+    cv::imshow("hehe", src);
+    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
@@ -688,9 +688,9 @@ static int do_create_template(const cv::Mat &src, Koyo_Tool_Contour_Parameter ko
     bitMap.create(cv::Size(src.cols, src.rows), CV_8UC1);
     bitmap2Mat(src, bitMap, koyo_tool_contour_parameter.bitmaps, src.cols, src.rows);
 #ifdef _DEBUG_
-#if 0
-    for (int i = 186; i < 211; ++i) {
-        for (int j = 107; j < 167; ++j) {
+#if 1
+    for (int i = 228; i < 255; ++i) {
+        for (int j = 135; j < 190; ++j) {
             bitMap.at<uchar>(i,j) = 0;
         }
     }

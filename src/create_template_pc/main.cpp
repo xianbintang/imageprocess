@@ -181,7 +181,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.detect_rect_y3 = 122;
 #endif
 
-    koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_LOW;
+    koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
     koyo_tool_contour_parameter.angle_range = 180;
 }
 
