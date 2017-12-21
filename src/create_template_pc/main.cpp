@@ -72,17 +72,17 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 #endif
 
 #ifdef _CPU_TEST_
-    koyo_tool_contour_parameter.detect_rect_x0 = 196;
-    koyo_tool_contour_parameter.detect_rect_y0 = 130;
+    koyo_tool_contour_parameter.detect_rect_x0 = 165;
+    koyo_tool_contour_parameter.detect_rect_y0 = 85;
 
-    koyo_tool_contour_parameter.detect_rect_x1 = 197;
-    koyo_tool_contour_parameter.detect_rect_y1 = 427;
+    koyo_tool_contour_parameter.detect_rect_x1 = 165;
+    koyo_tool_contour_parameter.detect_rect_y1 = 445;
 
-    koyo_tool_contour_parameter.detect_rect_x2 = 483;
-    koyo_tool_contour_parameter.detect_rect_y2 = 428;
+    koyo_tool_contour_parameter.detect_rect_x2 = 514;
+    koyo_tool_contour_parameter.detect_rect_y2 = 445;
 
-    koyo_tool_contour_parameter.detect_rect_x3 = 483;
-    koyo_tool_contour_parameter.detect_rect_y3 = 130;
+    koyo_tool_contour_parameter.detect_rect_x3 = 514;
+    koyo_tool_contour_parameter.detect_rect_y3 = 85;
 #endif
 
 #ifdef _KOYO_TEST_

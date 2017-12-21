@@ -481,9 +481,9 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::Sobel(src, gx, CV_16S, 1,0,3);        //gradient in X direction
     cv::Sobel(src, gy, CV_16S, 0,1,3);        //gradient in Y direction
 
-    cv::Mat binaryContour;
-    cv::Canny(src, binaryContour, low_threshold, high_threshold);
-#if 0
+//    cv::Mat binaryContour;
+//    cv::Canny(src, binaryContour, low_threshold, high_threshold);
+#if 1
     cv::Mat binaryContour, before_filter;
     cv::Canny(src, before_filter, low_threshold, high_threshold);
     //canny的结果和bitmap相与
