@@ -572,8 +572,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-    cv::imshow("hehe", src);
-    cvWaitKey(0);
+//    cv::imshow("hehe", src);
+//    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
@@ -880,6 +880,30 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
+#ifdef _DEBUG_
+    // 获取擦除后的轮廓
+
+    cv::Mat template_roi_ext;
+    auto tmp1 = template_image;
+    template_roi_ext = tmp1(
+            cv::Rect(koyo_tool_contour_parameter.ext_rect_x,
+                     koyo_tool_contour_parameter.ext_rect_y,
+                     koyo_tool_contour_parameter.ext_rect_width,
+                     koyo_tool_contour_parameter.ext_rect_height
+            ));
+    cv::imwrite("data//roi_ext.jpg", template_roi_ext);
+
+    std::vector<cv::Point> rect1 =  {
+            {koyo_tool_contour_parameter.detect_rect_x0 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y0 - koyo_tool_contour_parameter.ext_rect_y},
+            {koyo_tool_contour_parameter.detect_rect_x1 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y1 - koyo_tool_contour_parameter.ext_rect_y},
+            {koyo_tool_contour_parameter.detect_rect_x2 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y2 - koyo_tool_contour_parameter.ext_rect_y},
+            {koyo_tool_contour_parameter.detect_rect_x3 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y3 - koyo_tool_contour_parameter.ext_rect_y},
+    };
+    cv::Mat result;
+    cutout_template_image(template_roi_ext, rect1, result);
+    cv::imwrite("data//result.jpg", result);
+
+#endif
     cutout_template_image(template_image, rect, template_roi);
 //    template_roi = template_image;
 #ifdef _DEBUG_
