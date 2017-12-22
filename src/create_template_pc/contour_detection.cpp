@@ -635,6 +635,7 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
     }
 //    cv::imshow("max dist", tmp);
 //    cvWaitKey(0);
+    std::cout << range_low << " " << range_high << std::endl;
 #endif
     return std::max((range_low + range_high) / 2 ,1.0) ;
 }
@@ -823,9 +824,9 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     std::cout << tt.duration() << "ms" << std::endl;
 
 #ifdef _DEBUG_
-    for (auto iter = tpls.cbegin(); iter != tpls.end(); ++iter) {
+//    for (auto iter = tpls.cbegin(); iter != tpls.end(); ++iter) {
 //        std::cout << iter->at(0).noOfCordinates << std::endl;
-    }
+//    }
 #endif
     //建立完模板需要将模板发送给客户端，需要发送的就是tpls这个数据结构
 
@@ -899,7 +900,6 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     };
 #ifdef _DEBUG_
     // 获取擦除后的轮廓
-
 #if 0
     cv::Mat template_roi_ext;
     auto tmp1 = template_image;
@@ -912,11 +912,21 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     // roi_ext.jpg 是客户端传下来的位图, 对其进行canny并且保存其轮廓文件图就可以了
     cv::imwrite("data//roi_ext.jpg", template_roi_ext);
 #endif
+#endif
 
     // todo 读取位图，这里现在是用读取图像的，应该改成从bitmap中获取
     cv::Mat template_roi_ext;
+#ifdef _DEBUG_
     cv::Mat cleanedImage = cv::imread("data//bitmap_erased.jpg", 0);
-    cv::Canny(cleanedImage, template_roi_ext, 5, 80);
+    // todo 换成从bitmap中读取
+    // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
+    cv::Canny(cleanedImage, template_roi_ext, 30, 150);
+#endif
+
+#ifdef _RELEASE_
+    bitmap2Mat(template_roi_ext, template_roi_ext, koyo_tool_contour_parameter.bitmaps,
+               koyo_tool_contour_parameter.ext_rect_width, koyo_tool_contour_parameter.ext_rect_height);
+#endif
 
     std::vector<cv::Point> rect1 =  {
             {koyo_tool_contour_parameter.detect_rect_x0 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y0 - koyo_tool_contour_parameter.ext_rect_y},
@@ -926,14 +936,14 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     };
     cv::Mat result;
     cutout_template_image(template_roi_ext, rect1, result);
-    cv::imwrite("data//result.jpg", result);
+//    cv::imwrite("data//result.jpg", result);
 //    std::cout << result.cols << " " << result.rows << std::endl;
 
     // 这里应该给出bitMapcleaned, 现在bitmapCleaned是轮廓位图
     auto bitmapCleaned = result;
-#endif
+
     cutout_template_image(template_image, rect, template_roi);
-    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
+//    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
 //    template_roi = template_image;
 #ifdef _DEBUG_
 //    cv::Mat tmp = template_roi;
@@ -959,8 +969,8 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     // 在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
 //    koyo_tool_contour_parameter.bitmaps = bitmap;
     // todo 这里不应该设置, 应该用别的变量
-    koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
-    koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
+//    koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
+//    koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
 #endif
 
     // 使用截取出来的图片进行轮廓建立
