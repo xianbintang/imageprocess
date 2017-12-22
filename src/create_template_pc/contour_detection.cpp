@@ -489,7 +489,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
 
 //    cv::Mat binaryContour;
 //    cv::Canny(src, binaryContour, low_threshold, high_threshold);
-#if 1
+
     cv::Mat binaryContour, before_filter;
     cv::Canny(src, before_filter, low_threshold, high_threshold);
     //canny的结果和bitmap相与
@@ -505,7 +505,6 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::bitwise_and(before_filter, bitmap, binaryContour);
 //    cv::imshow("binary", binaryContour);
 //    cv::waitKey(0);
-#endif
 
     const short *_sdx;
     const short *_sdy;
@@ -760,6 +759,15 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     for (auto &pyr : pyramid_templates) {
 #ifdef  _DEBUG_
         saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
+#if 0
+        cv::Mat gx, gy;
+
+        cv::Sobel(pyr, gx, CV_16S, 1,0,3);        //gradient in X direction
+        cv::Sobel(pyr, gy, CV_16S, 0,1,3);        //gradient in Y direction
+        // 保存各层的梯度信息
+        saveMatf(gx, std::string("data//gx" + std::to_string(gx.rows) + std::to_string(gx.cols) + ".txt").c_str());
+        saveMatf(gy, std::string("data//gy" + std::to_string(gy.rows) + std::to_string(gy.cols) + ".txt").c_str());
+#endif
 #endif
 //    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
