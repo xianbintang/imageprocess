@@ -14,30 +14,9 @@
 #include <basetsd.h>
 #include "contour_detection.h"
 
-static void saveMat(cv::Mat mat, const char *path) {
-    FILE *fp = fopen(path, "w");
-    int i,j;
-    for (i = 0; i < mat.rows; ++i) {
-        for (j = 0; j < mat.cols; ++j) {
-//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
-            fprintf(fp, "%d ", mat.at<uchar>(i, j));
-        }
-        fprintf(fp, "\n");
-    }
-    fclose(fp);
-}
-static void saveMatf(cv::Mat mat, const char *path) {
-    FILE *fp = fopen(path, "w");
-    int i,j;
-    for (i = 0; i < mat.rows; ++i) {
-        for (j = 0; j < mat.cols; ++j) {
-//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
-            fprintf(fp, "%d ", mat.at<short>(i, j));
-        }
-        fprintf(fp, "\n");
-    }
-    fclose(fp);
-}
+
+void saveMat(cv::Mat mat, const char *path);
+void saveMatf(cv::Mat mat, const char *path);
 
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
@@ -898,6 +877,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 {
     // 获取灰度图
     auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+
     // 设置参数截取模板图片
     cv::Mat template_roi;
     std::vector<cv::Point> rect =  {
@@ -924,17 +904,11 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // todo 读取位图，这里现在是用读取图像的，应该改成从bitmap中获取
     cv::Mat template_roi_ext;
-#ifdef _DEBUG_
-    cv::Mat cleanedImage = cv::imread("data//bitmap_erased.jpg", 0);
-    // todo 换成从bitmap中读取
-    // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
-    cv::Canny(cleanedImage, template_roi_ext, 30, 150);
-#endif
+    template_roi_ext.create(koyo_tool_contour_parameter.ext_rect_height, koyo_tool_contour_parameter.ext_rect_width, CV_8UC1);
 
-#ifdef _RELEASE_
+    // 从bitmap中恢复被擦除的位图
     bitmap2Mat(template_roi_ext, template_roi_ext, koyo_tool_contour_parameter.bitmaps,
                koyo_tool_contour_parameter.ext_rect_width, koyo_tool_contour_parameter.ext_rect_height);
-#endif
 
     std::vector<cv::Point> rect1 =  {
             {koyo_tool_contour_parameter.detect_rect_x0 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y0 - koyo_tool_contour_parameter.ext_rect_y},
@@ -953,33 +927,6 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     cutout_template_image(template_image, rect, template_roi);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
 //    template_roi = template_image;
-#ifdef _DEBUG_
-//    cv::Mat tmp = template_roi;
-//    cv::Mat contour;
-//    cv::Canny(tmp, contour, 5, 80);
-//     todo 可能得把这个膨胀一下
-//    saveMat(contour, "data//contour_erased.txt");
-#endif
-
-#ifdef _DEBUG_
-//     读取文件，恢复位图
-//    cv::imwrite("data//template_img.jpg", template_roi);
-//    UINT8 *bitmap = new UINT8[(sizeof(uchar) * template_roi.rows * template_roi.cols)];
-//    int num;
-//    int k = 0;
-//    std::ifstream fin("data//contour_erased.txt");
-//    if(!fin.is_open()) {
-//        exit(-1);
-//    }
-//    while(fin >> num && k < template_roi.rows * template_roi.cols) {
-//        bitmap[k++] = num;
-//    }
-    // 在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
-//    koyo_tool_contour_parameter.bitmaps = bitmap;
-    // todo 这里不应该设置, 应该用别的变量
-//    koyo_tool_contour_parameter.ext_rect_width = template_roi.cols;
-//    koyo_tool_contour_parameter.ext_rect_height = template_roi.rows;
-#endif
 
     // 使用截取出来的图片进行轮廓建立
     // 这之后擦除的代码不用改，保证这里传入的bitmap是对着的就行了

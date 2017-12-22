@@ -69,8 +69,8 @@ void displayTextImagef(const char *path, int width, int height)
         }
     }
     cvShowImage("img", img);
-//    cvSaveImage("SearchArray_8U.bmp", img);
-    cvWaitKey();
+    cvSaveImage("SearchArray_8U.bmp", img);
+//    cvWaitKey();
 }
 
 
@@ -108,9 +108,9 @@ void Text2HIImage(char *path, int width, int height) {
 //            fscanf(fp, "%d", &num);
 //            printf("%d ", num);
             fin >> num;
-            std::cout << num << " ";
+            if(num < -300)
+                std::cout << num << " ";
         }
-        std::cout << std::endl;
     }
 }
 
@@ -125,5 +125,8 @@ int main(int argc, char ** argv)
         displayTextImageS8(argv[1], atoi(argv[2]), atoi(argv[3]));
     else if(atoi(argv[4]) == 3)
         displayTextImagebitMat(argv[1], atoi(argv[2]), atoi(argv[3]));
+    else if(atoi(argv[4]) == 4) {
+        Text2HIImage(argv[1], atoi(argv[2]), atoi(argv[3]));
+    }
         return 0;
 }

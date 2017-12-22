@@ -7,7 +7,33 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv/cv.hpp>
 #include <windef.h>
+#include <fstream>
 #include "contour_detection.h"
+
+void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
 
 void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_parameter)
 {
@@ -203,6 +229,18 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.ext_rect_width = 445;
     koyo_tool_contour_parameter.ext_rect_height = 445;
 
+    UINT8 *bitmap = new UINT8[(sizeof(uchar) * koyo_tool_contour_parameter.ext_rect_height * koyo_tool_contour_parameter.ext_rect_width)];
+    int num;
+    int k = 0;
+    std::ifstream fin("data//contour_erased.txt");
+    if(!fin.is_open()) {
+        exit(-1);
+    }
+    while(fin >> num && k < koyo_tool_contour_parameter.ext_rect_width * koyo_tool_contour_parameter.ext_rect_height) {
+        bitmap[k++] = num;
+    }
+//     在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
+    koyo_tool_contour_parameter.bitmaps = bitmap;
 }
 
 
@@ -220,6 +258,14 @@ int main(int argc, char **argv)
         template_image = cv::imread(argv[1], 0);
         buf = template_image.data;
     }
+
+    cv::Mat cleanedImage = cv::imread("data//bitmap_erased.jpg", 0);
+    cv::Mat template_roi_ext;
+    // todo 换成从bitmap中读取
+    // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
+    cv::Canny(cleanedImage, template_roi_ext, 30, 150);
+    saveMat(template_roi_ext, "data//contour_erased.txt");
+
 
     Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter;
     init_contour_parameter(koyo_tool_contour_parameter);
