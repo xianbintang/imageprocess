@@ -70,7 +70,7 @@ void displayTextImagef(const char *path, int width, int height)
     }
     cvShowImage("img", img);
     cvSaveImage("SearchArray_8U.bmp", img);
-//    cvWaitKey();
+    cvWaitKey();
 }
 
 

@@ -97,3 +97,6 @@ add_library(create_template_lib STATIC src/create_template_pc/contour_detection.
 
 add_executable(myFilter test/myFilter.cpp)
 target_link_libraries(myFilter ${OpenCV_LIBS})
+
+add_executable(cydpc test/cydpc/contour_detection.h test/cydpc/contour_detection.cpp test/cydpc/TimeTracker.h test/cydpc/main.cpp)
+target_link_libraries(cydpc ${OpenCV_LIBS})
