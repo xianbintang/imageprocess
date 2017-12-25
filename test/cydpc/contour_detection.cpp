@@ -244,13 +244,8 @@ int do_top_layer_match(int level, std::vector<TemplateStruct> &top_tpls, float t
                             point.y += mapCenter.y;
                             if(contain_point_in_rect(point, rectPoint) && spl.hasPoint[point.y][point.x]){
                                 ++num_T;
-
-                                auto tmp = tpl.edgeDerivativeX[order] * spl.edgeDerivativeX[point.y][point.x]
-                                                 + tpl.edgeDerivativeY[order] * spl.edgeDerivativeY[point.y][point.x];
-                                sum_of_s += tmp;
-                                if(i == 18 && j == 21)
-                                std::cout << tmp << " " << tpl.edgeDerivativeX[order] << " " << spl.edgeDerivativeX[point.y][point.x] << " " <<
-                                                  tpl.edgeDerivativeY[order] << " " << spl.edgeDerivativeY[point.y][point.x] << std::endl;
+                                sum_of_s += fabs(tpl.edgeDerivativeX[order] * spl.edgeDerivativeX[point.y][point.x]
+                                        + tpl.edgeDerivativeY[order] * spl.edgeDerivativeY[point.y][point.x]);
                             }
                             ++order;
                             if(sum_of_s < (threshold_S-1)*K1 + num_T){
@@ -326,13 +321,8 @@ int do_other_layer_match(int cur_level, std::vector<TemplateStruct> &cur_tpls, f
                 point.y += centerPoint.y;
                 if(contain_point_in_rect(point, rectPoint) && spl.hasPoint[point.y][point.x]){
                     ++num_T;
-                    auto tmp = tpl.edgeDerivativeX[order] * spl.edgeDerivativeX[point.y][point.x]
-                                    + tpl.edgeDerivativeY[order] * spl.edgeDerivativeY[point.y][point.x];
-                    sum_of_s += tmp;
-//                    if(cur_level == 2 && centerPoint.y == 65 && centerPoint.x == 88)
-//                        std::cout << tmp << " " << tpl.edgeDerivativeX[order] << " " << spl.edgeDerivativeX[point.y][point.x] << " " <<
-//                                  tpl.edgeDerivativeY[order] << " " << spl.edgeDerivativeY[point.y][point.x] << std::endl;
-
+                    sum_of_s += fabs(tpl.edgeDerivativeX[order] * spl.edgeDerivativeX[point.y][point.x]
+                            + tpl.edgeDerivativeY[order] * spl.edgeDerivativeY[point.y][point.x]);
                 }
                 ++order;
                 if(sum_of_s < (threshold_S-1)*K1 + num_T){
@@ -479,8 +469,8 @@ int do_create_sample_pyramid_1(){
 
         sampleStructs.push_back(sampleStruct);
 
-//        cv::imshow("info", binaryContour);
-//        cv::waitKey(0);
+        cv::imshow("info", binaryContour);
+        cv::waitKey(0);
 
         std::cout << "the num of points is " << numOfPoint << std::endl;
         if(numOfPoint <= MIN_CONTOUR_PYRA){
@@ -563,9 +553,9 @@ int match_sample_template(const cv::Mat &sample_image, Koyo_Contour_Template_Run
         TemplateStruct &tpl = kctrp.tpls[level][l];
         draw_template(src, tpl, result_Center);
 
-//        cv::imshow("contour", src);
-//        cv::imshow("raw", sample_pyramids[level]);
-//        cvWaitKey(0);
+        cv::imshow("contour", src);
+        cv::imshow("raw", sample_pyramids[level]);
+        cvWaitKey(0);
         level--;
     }
 

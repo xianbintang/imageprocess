@@ -140,7 +140,6 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
 int main(int argc, char *argv[])
 {
     // 导入待测图文件转化为待测图灰度图
-//    std::string filename("gray0.txt");
     std::string filename(argv[1]);
 
     cv::Mat sample_image_gray;
