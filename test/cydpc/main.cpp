@@ -3,6 +3,7 @@
 #include <opencv/cv.hpp>
 #include <iostream>
 #include <fstream>
+#include <basetsd.h>
 #include "contour_detection.h"
 #include "TimeTracker.h"
 
@@ -157,6 +158,12 @@ int main(int argc, char *argv[])
         bitmap2Mat(sample_image_gray, values, WIDTH_TXT, HEIGHT_TXT);
 //        cv::imshow("raw picture", sample_image_gray);
 //        cv::waitKey(0);
+    } if(filename.substr(filename.size() - 3, 3) == "yuv") {
+        UINT8 *buf = nullptr;
+        FILE *yuv_file = fopen(filename.c_str(), "rb+");
+        buf = new UINT8[WIDTH * HEIGHT];
+        fread(buf, WIDTH * HEIGHT, 1, yuv_file);
+        sample_image_gray = get_y_from_yuv(buf, WIDTH, HEIGHT);
     } else {
         UINT8 *buf = nullptr;
         cv::Mat sample_image;

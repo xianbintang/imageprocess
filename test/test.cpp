@@ -66,6 +66,9 @@ void displayTextImagef(const char *path, int width, int height)
             fin >> num;
 //            std::cout << num << std::endl;
             prow[j] = num *50;
+            if(i == 36 && j == 98) {
+                std::cout << num << std::endl;
+            }
         }
     }
     cvShowImage("img", img);

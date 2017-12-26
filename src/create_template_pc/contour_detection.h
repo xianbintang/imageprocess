@@ -5,8 +5,9 @@
 #ifndef KOYO_CONTOUR_DETECTION_H
 #define KOYO_CONTOUR_DETECTION_H
 
-#define _DEBUG_
-#define _DEBUG_LEVEL_HIGH_
+#define _RELEASE_
+//#define _DEBUG_
+//#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
 #include <memory>

@@ -39,7 +39,8 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
-#define _CPU_TEST45_
+
+#define _CPU_TEST45_BAD_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -123,6 +124,20 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 
     koyo_tool_contour_parameter.detect_rect_x3 = 350;
     koyo_tool_contour_parameter.detect_rect_y3 = 29;
+#endif
+
+#ifdef _CPU_TEST45_BAD_
+    koyo_tool_contour_parameter.detect_rect_x0 = 200;
+    koyo_tool_contour_parameter.detect_rect_y0 = 200;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 200;
+    koyo_tool_contour_parameter.detect_rect_y1 = 400;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 400;
+    koyo_tool_contour_parameter.detect_rect_y2 = 400;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 400;
+    koyo_tool_contour_parameter.detect_rect_y3 = 200;
 #endif
 
 #ifdef _KOYO_TEST_
@@ -224,10 +239,20 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
     koyo_tool_contour_parameter.angle_range = 180;
 
+
+#ifdef _CPU_TEST45_BAD_
+    koyo_tool_contour_parameter.ext_rect_x = 200;
+    koyo_tool_contour_parameter.ext_rect_y = 200;
+    koyo_tool_contour_parameter.ext_rect_width = 200;
+    koyo_tool_contour_parameter.ext_rect_height = 200;
+#endif
+
+#ifdef _CPU_TEST45_
     koyo_tool_contour_parameter.ext_rect_x = 131;
     koyo_tool_contour_parameter.ext_rect_y = 29;
     koyo_tool_contour_parameter.ext_rect_width = 445;
     koyo_tool_contour_parameter.ext_rect_height = 445;
+#endif
 
     UINT8 *bitmap = new UINT8[(sizeof(uchar) * koyo_tool_contour_parameter.ext_rect_height * koyo_tool_contour_parameter.ext_rect_width)];
     int num;
@@ -259,11 +284,11 @@ int main(int argc, char **argv)
         buf = template_image.data;
     }
 
-    cv::Mat cleanedImage = cv::imread("data//bitmap_erased.jpg", 0);
+    cv::Mat cleanedImage = cv::imread("data//bitmap_erased1.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
     // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
-    cv::Canny(cleanedImage, template_roi_ext, 30, 150);
+    cv::Canny(cleanedImage, template_roi_ext, 10, 80);
     saveMat(template_roi_ext, "data//contour_erased.txt");
 
 

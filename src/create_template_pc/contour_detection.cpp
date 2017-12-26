@@ -378,7 +378,18 @@ static int cutout_template_image(const cv::Mat &template_image, std::vector<cv::
     // 这里得保证一样的, 保证对齐吧
     int rect_width = calAlign(rect[3].x - rect[0].x, 16);
     int rect_height = calAlign(rect[1].y - rect[0].y, 16);
-    interesting_template = img_rotate(cv::Rect(rect[0].x, rect[0].y, rect_width, rect_height));
+    // 保证不会超出原图大小
+    // todo 隐藏的问题是16可能减得太多了
+    if(rect_width > rect[3].x - rect[0].x) rect_width -= 16;
+    if(rect_height> rect[1].y - rect[0].y) rect_height-= 16;
+
+    // 要保证这里的截图不出问题才行。。
+    try {
+        interesting_template = img_rotate(cv::Rect(rect[0].x, rect[0].y, rect_width, rect_height));
+    } catch (std::exception e){
+        std::cout << "ERROR while cut image: " << " " << rect[0].x << " " <<rect[0].y << " " <<rect_width << " " <<rect_height <<  e.what() << std::endl;
+        exit(-1);
+    }
 
 //    cv::rectangle(img_rotate, rect[0], rect[2], cv::Scalar(255,255,255));
 //    cv::imshow("eh" ,interesting_template);
@@ -825,7 +836,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     return 0;
 }
 
-
+#ifdef _DEBUG_
 static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char* template_data)
 {
     std::cout << std::endl << "--------test unpack template-----------" << std::endl;
@@ -868,6 +879,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
     }
 
 }
+#endif
 
 
 /*
@@ -889,16 +901,16 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 #ifdef _DEBUG_
     // 获取擦除后的轮廓
 #if 0
-    cv::Mat template_roi_ext;
+    cv::Mat template_roi_ext1;
     auto tmp1 = template_image;
-    template_roi_ext = tmp1(
+    template_roi_ext1 = tmp1(
             cv::Rect(koyo_tool_contour_parameter.ext_rect_x,
                      koyo_tool_contour_parameter.ext_rect_y,
                      koyo_tool_contour_parameter.ext_rect_width,
                      koyo_tool_contour_parameter.ext_rect_height
             ));
     // roi_ext.jpg 是客户端传下来的位图, 对其进行canny并且保存其轮廓文件图就可以了
-    cv::imwrite("data//roi_ext.jpg", template_roi_ext);
+    cv::imwrite("data//roi_ext.jpg", template_roi_ext1);
 #endif
 #endif
 

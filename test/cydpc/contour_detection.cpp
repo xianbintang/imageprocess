@@ -323,6 +323,11 @@ int do_other_layer_match(int cur_level, std::vector<TemplateStruct> &cur_tpls, f
                     ++num_T;
                     sum_of_s += fabs(tpl.edgeDerivativeX[order] * spl.edgeDerivativeX[point.y][point.x]
                             + tpl.edgeDerivativeY[order] * spl.edgeDerivativeY[point.y][point.x]);
+                    if((int)cur_level == 2 && centerPoint.x == 81 && centerPoint.y == 69) {
+//                        std::cout << l << " " << tpl.cordinates[order] << " " << point << " "<< tpl.edgeDerivativeX[order] << " "<< spl.edgeDerivativeX[point.y][point.x]<< " "
+//                            << tpl.edgeDerivativeY[order] << " "<< spl.edgeDerivativeY[point.y][point.x] << std::endl;
+//                    std::cout << tpl.noOfCordinates << std::endl;
+                    }
                 }
                 ++order;
                 if(sum_of_s < (threshold_S-1)*K1 + num_T){
