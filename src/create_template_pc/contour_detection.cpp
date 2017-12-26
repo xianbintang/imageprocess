@@ -18,6 +18,33 @@
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
+#ifdef _RELEASE_
+void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+#endif
+
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
     cv::Mat gray;
@@ -957,3 +984,27 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 //    cvWaitKey(0);
     return template_data.release();
 }
+
+int get_contours(const UINT8 *yuv, UINT8 *contours[3])
+{
+
+    auto src = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+    cv::Mat contour_low, contour_medium, contour_high;
+    cv::Canny(src, contour_low, 10, 80);
+    cv::Canny(src, contour_medium, 30, 150);
+    cv::Canny(src, contour_high, 60, 220);
+    for (int i = 0; i < HEIGHT; ++i) {
+        for (int j = 0; j < WIDTH; ++j) {
+            contours[0][i * WIDTH + j] = contour_low.at<uchar>(i, j);
+            contours[1][i * WIDTH + j] = contour_medium.at<uchar>(i, j);
+            contours[2][i * WIDTH + j] = contour_high.at<uchar>(i, j);
+        }
+    }
+
+#ifdef _DEBUG_
+    cv::imwrite("data//low.jpg", contour_low);
+    cv::imwrite("data//medium.jpg", contour_medium);
+    cv::imwrite("data//high.jpg", contour_high);
+#endif
+}
+

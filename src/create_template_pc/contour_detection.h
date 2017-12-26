@@ -113,7 +113,7 @@ typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
  * @return 返回值是需要向传感器发送的buf缓冲区的指针，传过去以后由调用create_template的函数进行释放。
  * */
 char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
-
+int get_contours(const UINT8 *yuv, UINT8 *contours[3]);
 //std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param);
 //int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> template_data);
 //int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, char* template_data);

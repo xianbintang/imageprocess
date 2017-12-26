@@ -284,6 +284,13 @@ int main(int argc, char **argv)
         buf = template_image.data;
     }
 
+    UINT8 *contours[3];
+    contours[0] = new UINT8[WIDTH * HEIGHT];
+    contours[1] = new UINT8[WIDTH * HEIGHT];
+    contours[2] = new UINT8[WIDTH * HEIGHT];
+
+    get_contours(buf, contours);
+
     cv::Mat cleanedImage = cv::imread("data//bitmap_erased1.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
