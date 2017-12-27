@@ -496,8 +496,8 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
     cv::Mat gx;                //Matrix to store X derivative
     cv::Mat gy;                //Matrix to store Y derivative
     // set width and height
-    tpl.modelHeight = src.rows;    //Save Template height
-    tpl.modelWidth = src.cols;    //Save Template width
+    tpl.modelHeight = static_cast<UINT16>(src.rows);    //Save Template height
+    tpl.modelWidth = static_cast<UINT16>(src.cols);    //Save Template width
 
     tpl.noOfCordinates = 0;    //initialize
 
@@ -523,13 +523,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
 //    cv::imshow("binary", binaryContour);
 //    cv::waitKey(0);
 
-    const short *_sdx;
-    const short *_sdy;
-    double fdx, fdy;
-
     int RSum = 0, CSum = 0;
-    int curX, curY;
-    int flag = 1;
 
     for (int i = 0; i < tpl.modelHeight; i++) {
         for (int j = 0; j < tpl.modelWidth; j++) {
@@ -539,8 +533,9 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
             cv::Point p;
             p.x = j;
             p.y = i;
-            // todo 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
-            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)) {
+            // 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
+            // todo 这里由于使用了位与操作，所以不用再判断距离了
+            if (U8 /*&& dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)*/) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
@@ -555,8 +550,8 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
                     if (fabs(vector_length - 0.) < 0.00001) {
 //                        printf(".............................................\n");
                     }
-                    tpl.edgeDerivativeX.push_back(fdx / vector_length);
-                    tpl.edgeDerivativeY.push_back(fdy / vector_length);
+                    tpl.edgeDerivativeX.push_back(static_cast<float>(fdx / vector_length));
+                    tpl.edgeDerivativeY.push_back(static_cast<float>(fdy / vector_length));
                     tpl.noOfCordinates++;
                 }
             }
@@ -690,7 +685,11 @@ static void Mat2bitmap(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 
     }
 }
 
-static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+/*
+ * src是截取出来的模板图片
+ * bitmapCleaned是位图，大小和src一致
+ */
+static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
 {
     // 运行完成后需要将这个内容发送给嵌入式
 
@@ -701,10 +700,10 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     std::vector<cv::Mat> pyramid_templates;
 #endif
     pyramid_templates.push_back(src);
-//    pyramid_templates[0] = src;
+    pyramid_bitmaps.push_back(bitMap);
 
-    // todo bitmap转图像
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
+
     if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
         sensitity_threshold_low = 10;
         sensitity_threshold_high = 80;
@@ -715,45 +714,20 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
         sensitity_threshold_low = 60;
         sensitity_threshold_high = 220;
     }
-//    cv::imshow("test", src);
-//    cv::waitKey(0);
-    // bitMap是恢复出来的擦除过的轮廓
-    cv::Mat bitMap = bitMapCleaned;
-//    bitMap.create(cv::Size(src.cols, src.rows), CV_8UC1);
-//    bitmap2Mat(src, bitMap, koyo_tool_contour_parameter.bitmaps, src.cols, src.rows);
-#ifdef _DEBUG_
-#if 1
-    for (int i = 228; i < 255; ++i) {
-        for (int j = 135; j < 190; ++j) {
-            bitMap.at<uchar>(i,j) = 0;
-        }
-    }
-//    cv::imshow("erased", bitMap);
-//    cv::waitKey(0);
-#endif
-#endif
 
-    pyramid_bitmaps.push_back(bitMap);
 
     // 建立各层金字塔, 并确定最佳金字塔层数
-    // todo 这里同时把客户端传来的bitmap也进行金字塔构建
     int optimal_pyr_level = 0;
-//    cv::imshow("template_roi", src);
-//    cv::waitKey(0);
-//    std::cout << "size of this level: cols " << pyramid_templates[0].cols << ", rows" << pyramid_templates[0].rows << std::endl;
+
     for (int i = 0; i < MAX_NUM_PYRAMID - 1; ++i) {
         cv::Mat next_level;
         cv::Mat next_level_bmap;
         cv::pyrDown(pyramid_bitmaps[i], next_level_bmap);
         cv::pyrDown(pyramid_templates[i], next_level);
-//        std::cout << "size of this level: cols " << next_level.cols << ", rows" << next_level.rows << std::endl;
         pyramid_templates.push_back(next_level);
         pyramid_bitmaps.push_back(next_level_bmap);
-//        cv::imshow(std::string("pyr") + std::string(1, i - '0') , pyramid_templates[i+1]);
-//        cvWaitKey(0);
     }
 
-    // 对每一层使用高斯滤波处理, 只对底层做高斯滤波
 #if 0
     // 做过高斯滤波就不做滤波
     for (auto iter = std::begin(pyramid_templates); iter != std::end(pyramid_templates); ++iter) {
@@ -765,8 +739,8 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     // 只对最底层进行滤波
     cv::Mat after_gaus;
     cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),0);
-
     pyramid_templates[0] = after_gaus;
+
     // 图像的质心
 #ifndef _DEBUG_
     std::vector<cv::Point> centers;
@@ -776,17 +750,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
     for (auto &pyr : pyramid_templates) {
 #ifdef  _DEBUG_
         saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
-#if 0
-        cv::Mat gx, gy;
-
-        cv::Sobel(pyr, gx, CV_16S, 1,0,3);        //gradient in X direction
-        cv::Sobel(pyr, gy, CV_16S, 0,1,3);        //gradient in Y direction
-        // 保存各层的梯度信息
-        saveMatf(gx, std::string("data//gx" + std::to_string(gx.rows) + std::to_string(gx.cols) + ".txt").c_str());
-        saveMatf(gy, std::string("data//gy" + std::to_string(gy.rows) + std::to_string(gy.cols) + ".txt").c_str());
 #endif
-#endif
-//    for (int i = 0; i < MAX_NUM_PYRAMID; ++i) {
         cv::Mat cannyResult;
         cv::Canny(pyr, cannyResult, sensitity_threshold_high, sensitity_threshold_low);
 
@@ -805,13 +769,10 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMapCleaned, 
             break;
         }
         ++optimal_pyr_level;
-//        cv::imshow(std::string("pyr") + std::string(1, i - '0') , cannyResult);
-//        cvWaitKey(0);
     }
     std::cout << "optimal level: " <<  optimal_pyr_level << std::endl;
-
     tt1.stop();
-    std::cout << "first half: " << tt1.duration() << std::endl;
+//    std::cout << "first half: " << tt1.duration() << std::endl;
 
 
     // 对每层每个角度建立模板
@@ -955,14 +916,15 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y2 - koyo_tool_contour_parameter.ext_rect_y},
             {koyo_tool_contour_parameter.detect_rect_x3 - koyo_tool_contour_parameter.ext_rect_x, koyo_tool_contour_parameter.detect_rect_y3 - koyo_tool_contour_parameter.ext_rect_y},
     };
-    cv::Mat result;
-    cutout_template_image(template_roi_ext, rect1, result);
+    cv::Mat bitmapCleaned;
+    // 从外接矩形位图中获取模板部分的位图
+    cutout_template_image(template_roi_ext, rect1, bitmapCleaned);
 //    cv::imwrite("data//result.jpg", result);
 //    std::cout << result.cols << " " << result.rows << std::endl;
 
     // 这里应该给出bitMapcleaned, 现在bitmapCleaned是轮廓位图
-    auto bitmapCleaned = result;
 
+    // 从原图中获取模板部分的位图
     cutout_template_image(template_image, rect, template_roi);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
 //    template_roi = template_image;
