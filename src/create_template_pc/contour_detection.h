@@ -94,7 +94,7 @@ typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
     UINT32 bitmap_size;          //位图大小,单位是bit
     UINT16 reserved;
     INT8 bitmap_path[128];
-    UINT8  *bitmaps;           //检测区域外接矩形位图,
+    UINT8  bitmaps[0];           //检测区域外接矩形位图,
 } Koyo_Tool_Contour_Parameter;
 
 // 把这些东西发送给传感器

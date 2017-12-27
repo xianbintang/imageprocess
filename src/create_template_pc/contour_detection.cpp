@@ -151,11 +151,11 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
 
     std::cout << buf_size << ", in MB: " << 1.0 * buf_size / 1024 / 1024 << "MB" << std::endl;
     *bufsize = buf_size;
+#ifdef _DEBUG_LEVEL_HIGH_
     float y1 = buf[buf_size - 4];
     float y2 = buf[buf_size - 8];
     printf("y1:%f  y2:%f\n", *((float*)&buf[buf_size - 4]), *((float*)&buf[buf_size - 8]));
 
-#ifdef _DEBUG_LEVEL_HIGH_
     // 测试写入文件
     TimeTracker timeTracker;
     timeTracker.start();
@@ -677,7 +677,14 @@ std::vector<UINT16> search_rect_width;
 static void bitmap2Mat(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 width, UINT16 height) {
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
+#ifdef _RELEASE_
+            //客户端传来的是1 0
+            dst.at<uchar>(i, j) = static_cast<uchar>(bitmap[i * width + j] * 255);
+#endif
+
+#ifdef _DEBUG_
             dst.at<uchar>(i, j) = bitmap[i * width + j];
+#endif
         }
     }
 }

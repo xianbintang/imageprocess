@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="create_template_lib" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="E:\ClionProjects\KOYO\images\cpus\image_yuv_45.yuv" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="KOYO" TARGET_NAME="create_template_lib" CONFIG_NAME="Debug">
+    <envs />
+    <method />
+  </configuration>
+</component>
