@@ -10,37 +10,16 @@
 #include <fstream>
 #include "contour_detection.h"
 
-void saveMat(cv::Mat mat, const char *path) {
-    FILE *fp = fopen(path, "w");
-    int i,j;
-    for (i = 0; i < mat.rows; ++i) {
-        for (j = 0; j < mat.cols; ++j) {
-//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
-            fprintf(fp, "%d ", mat.at<uchar>(i, j));
-        }
-        fprintf(fp, "\n");
-    }
-    fclose(fp);
-}
-void saveMatf(cv::Mat mat, const char *path) {
-    FILE *fp = fopen(path, "w");
-    int i,j;
-    for (i = 0; i < mat.rows; ++i) {
-        for (j = 0; j < mat.cols; ++j) {
-//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
-            fprintf(fp, "%d ", mat.at<short>(i, j));
-        }
-        fprintf(fp, "\n");
-    }
-    fclose(fp);
-}
+
+void saveMat(cv::Mat mat, const char *path);
+void saveMatf(cv::Mat mat, const char *path);
 
 void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_parameter)
 {
     koyo_tool_contour_parameter.algo_strategy = 1;
 
 
-#define _CPU_TEST45_BAD_
+#define _CPU_TEST45_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -291,7 +270,7 @@ int main(int argc, char **argv)
 
     get_contours(buf, contours);
 
-    cv::Mat cleanedImage = cv::imread("data//bitmap_erased1.jpg", 0);
+    cv::Mat cleanedImage = cv::imread("data//bitmap.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
     // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
@@ -303,7 +282,8 @@ int main(int argc, char **argv)
     init_contour_parameter(koyo_tool_contour_parameter);
 
     // 返回指向需要被发送的内存缓冲区的指针
-    create_template(buf, koyo_tool_contour_parameter);
+    int buf_size = 0;
+    create_template(buf, koyo_tool_contour_parameter, &buf_size);
 
     return 0;
 }

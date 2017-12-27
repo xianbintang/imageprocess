@@ -5,8 +5,8 @@
 #ifndef KOYO_CONTOUR_DETECTION_H
 #define KOYO_CONTOUR_DETECTION_H
 
-//#define _RELEASE_
-#define _DEBUG_
+#define _RELEASE_
+//#define _DEBUG_
 //#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
@@ -112,7 +112,8 @@ typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
  * @param yuv是传感器传上来的yuv图像，koyo_tool_contour_paramter, 是原先定义好的参数，这个和原来传给传感器的参数一样，需要是设置好的
  * @return 返回值是需要向传感器发送的buf缓冲区的指针，传过去以后由调用create_template的函数进行释放。
  * */
-char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
+//char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
+char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, int *buf_size);
 int get_contours(const UINT8 *yuv, UINT8 *contours[3]);
 //std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param);
 //int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> template_data);

@@ -58,7 +58,7 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
     return gray;
 }
 
-static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, int *bufsize)
 {
     // 先计算所有要使用的内存大小，然后分配空间，最后一点点将数据拷贝过去
     std::size_t buf_size = 0;
@@ -150,6 +150,7 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
     }
 
     std::cout << buf_size << ", in MB: " << 1.0 * buf_size / 1024 / 1024 << "MB" << std::endl;
+    *bufsize = buf_size;
     float y1 = buf[buf_size - 4];
     float y2 = buf[buf_size - 8];
     printf("y1:%f  y2:%f\n", *((float*)&buf[buf_size - 4]), *((float*)&buf[buf_size - 8]));
@@ -611,11 +612,13 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
     int K = 50;
     std::priority_queue<float> max_dist(K, -1);
     std::vector<cv::Point> points;
+//    double max_distance = -1;
     // 在目前没有旋转的图片中不会出现因为旋转导致的白边，所以直接在全图搜索就行了，不用考虑别的
     for (int i = 0; i < src.rows; ++i) {
         for (int j = 0; j < src.cols; ++j) {
             if (src.at<uchar>(i, j)) {
                 double dist = -1 * sqrt(pow((i - center.y),2) + pow((j - center.x),2));
+//                if(-dist > max_distance) max_distance = -dist;
                 if(dist < max_dist.top()) {
                     max_dist.pop();
                     max_dist.push(dist);
@@ -624,6 +627,9 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
             }
         }
     }
+    // 搜索框是最远点的位置，这样的话搜索框就不会超出了
+//    search_rect_width.push_back(static_cast<UINT16>(1 + max_distance));
+//    std::cout << "top: " << max_distance << " " << -max_dist.top() << std::endl;
 //    std::cout << "max dist....." << std::endl;
     float average_max_dist = 0;
     int i = 0;
@@ -873,7 +879,7 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
 /*
  *  提供给客户端的接口
  * */
-char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter)
+char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, int *buf_size)
 {
     // 获取灰度图
     auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
@@ -936,7 +942,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     std::cout << "test pack template" << std::endl;
-    auto template_data = pack_template(koyo_contour_template_runtime_param);
+    auto template_data = pack_template(koyo_contour_template_runtime_param, buf_size);
 
 #ifdef  _DEBUG_
     print_debug_info(pyramid_templates, template_data.get());
