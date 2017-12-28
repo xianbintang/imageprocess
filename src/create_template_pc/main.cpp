@@ -10,6 +10,32 @@
 #include <fstream>
 #include "contour_detection.h"
 
+#ifndef NDEBUG
+void saveMat(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<uchar>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+void saveMatf(cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<short>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+#endif
 
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);

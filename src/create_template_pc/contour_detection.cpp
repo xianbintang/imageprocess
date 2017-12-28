@@ -18,7 +18,7 @@
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
-#ifdef _RELEASE_
+#ifdef NDEBUG
 void saveMat(cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
@@ -396,7 +396,7 @@ static int cutout_template_image(const cv::Mat &template_image, std::vector<cv::
     std::cout << degree << std::endl;
     rotate_rect(rect, rotate_matrix);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     cv::circle(img_rotate, rect[0], 1, cv::Scalar(255,255,255));
     cv::circle(img_rotate, rect[1], 2, cv::Scalar(255,255,255));
     cv::circle(img_rotate, rect[2], 3, cv::Scalar(255,255,255));
@@ -645,7 +645,7 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
     auto range_high = acos(1 - 2 / (average_max_dist * average_max_dist)) / CV_PI * 180;
 //    std::cout <<"optimal angle step: " << range_low << " ~ " << range_high << std::endl;
 
-#ifdef _DEBUG_
+#ifndef NDEBUG
     cv::Mat tmp = src;
     for (unsigned int k = points.size() - K; k < points.size(); ++k) {
         cv::circle(tmp, points[k], 20, cv::Scalar(255,255,255));
@@ -665,7 +665,7 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
  */
 
 //#define _DEBUG_
-#ifdef _DEBUG_
+#ifndef NDEBUG
 std::vector<cv::Point> centers;
 std::vector<float> angle_steps;
 std::vector<cv::Mat> pyramid_templates;
@@ -677,12 +677,12 @@ std::vector<UINT16> search_rect_width;
 static void bitmap2Mat(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 width, UINT16 height) {
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-#ifdef _RELEASE_
+#ifdef NDEBUG
             //客户端传来的是1 0
             dst.at<uchar>(i, j) = static_cast<uchar>(bitmap[i * width + j] * 255);
 #endif
 
-#ifdef _DEBUG_
+#ifndef NDEBUG
             dst.at<uchar>(i, j) = bitmap[i * width + j];
 #endif
         }
@@ -709,7 +709,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     TimeTracker tt1;
     tt1.start();
     std::vector<cv::Mat> pyramid_bitmaps;
-#ifndef _DEBUG_
+#ifdef NDEBUG
     std::vector<cv::Mat> pyramid_templates;
 #endif
     pyramid_templates.push_back(src);
@@ -755,13 +755,13 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     pyramid_templates[0] = after_gaus;
 
     // 图像的质心
-#ifndef _DEBUG_
+#ifdef NDEBUG
     std::vector<cv::Point> centers;
     std::vector<float> angle_steps;
     std::vector<UINT16> search_rect_width;
 #endif
     for (auto &pyr : pyramid_templates) {
-#ifdef  _DEBUG_
+#ifndef  NDEBUG
         saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
 #endif
         cv::Mat cannyResult;
@@ -775,7 +775,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
         // 确定角度步长, 使用Canny的轮廓图来计算最远点
         auto step = get_angle_step_and_search_width(cannyResult, center, search_rect_width);
         angle_steps.push_back(step);
-#ifdef _DEBUG_
+#ifndef NDEBUG
         std::cout << "num of coordinate this level: " << num_of_contour << std::endl;
 #endif
         if (num_of_contour <= MIN_CONTOUR_PYRA) {
@@ -822,7 +822,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     tt.stop();
     std::cout << tt.duration() << "ms" << std::endl;
 
-#ifdef _DEBUG_
+#ifndef NDEBUG
 //    for (auto iter = tpls.cbegin(); iter != tpls.end(); ++iter) {
 //        std::cout << iter->at(0).noOfCordinates << std::endl;
 //    }
@@ -837,7 +837,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     return 0;
 }
 
-#ifdef _DEBUG_
+#ifndef NDEBUG
 static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char* template_data)
 {
     std::cout << std::endl << "--------test unpack template-----------" << std::endl;
@@ -899,7 +899,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-#ifdef _DEBUG_
+#ifndef NDEBUG
     // 获取擦除后的轮廓
 #if 0
     cv::Mat template_roi_ext1;
@@ -951,7 +951,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     std::cout << "test pack template" << std::endl;
     auto template_data = pack_template(koyo_contour_template_runtime_param, buf_size);
 
-#ifdef  _DEBUG_
+#ifndef  NDEBUG
     print_debug_info(pyramid_templates, template_data.get());
 #endif
 
@@ -976,7 +976,7 @@ int get_contours(const UINT8 *yuv, UINT8 *contours[3])
         }
     }
 
-#ifdef _DEBUG_
+#ifndef NDEBUG
     cv::imwrite("data//low.jpg", contour_low);
     cv::imwrite("data//medium.jpg", contour_medium);
     cv::imwrite("data//high.jpg", contour_high);

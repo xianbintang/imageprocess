@@ -5,7 +5,7 @@
 #ifndef KOYO_CONTOUR_DETECTION_H
 #define KOYO_CONTOUR_DETECTION_H
 
-#define _RELEASE_
+//#define _RELEASE_
 //#define _DEBUG_
 //#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
@@ -91,10 +91,15 @@ typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
     UINT16 top_threshold;        //处理结果阈值上限
     UINT16 bot_threshold;        //处理结果阈值下限
 
-    UINT32 bitmap_size;          //位图大小,单位是bit
+    UINT32 bitmap_total_size;          //位图大小,单位是bit
+    UINT32 template_bitmap_size;   //工具模板位图的大小
     UINT16 reserved;
     INT8 bitmap_path[128];
+#ifndef NDEBUG
+    UINT8  *bitmaps;           //检测区域外接矩形位图,
+#else
     UINT8  bitmaps[0];           //检测区域外接矩形位图,
+#endif
 } Koyo_Tool_Contour_Parameter;
 
 // 把这些东西发送给传感器
