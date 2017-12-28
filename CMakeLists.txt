@@ -13,6 +13,7 @@ else( CMAKE_BUILD_TYPE STREQUAL "Debug" )
     set(CMAKE_BUILD_TYPE "Release")
     set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -O3 -fopenmp")
     add_definitions(-DNDEBUG)
+    add_definitions(-DDEBUG_PRINT)
 endif( CMAKE_BUILD_TYPE STREQUAL "Debug" )
 message("Build Type:" ${CMAKE_BUILD_TYPE}    ${CMAKE_CXX_FLAGS})
 

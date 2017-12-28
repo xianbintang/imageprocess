@@ -536,7 +536,7 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
             p.y = i;
             // 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
             // todo 这里由于使用了位与操作，所以不用再判断距离了
-            if (U8 /*&& dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 100.0)*/) {
+            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 200.0)) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
@@ -592,8 +592,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-    cv::imshow("hehe", src);
-    cvWaitKey(0);
+//    cv::imshow("hehe", src);
+//    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
@@ -800,7 +800,9 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
         std::vector<TemplateStruct> cur_level_tpl;
         int k = 0;
         std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+        // todo angle_step是否考虑做成整数
+        for (double j = 0.0; (int)j < MAX_DEGREE; j += angle_steps[i]) {
+//            std::cout << j << " " << (int)j << std::endl;
             TemplateStruct tpl;
             auto rect = cur_rect;
             cv::Mat rotated_image;
