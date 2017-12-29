@@ -7,7 +7,7 @@
 
 //#define _RELEASE_
 //#define _DEBUG_
-//#define _DEBUG_LEVEL_HIGH_
+#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
 #include <memory>
@@ -110,6 +110,11 @@ typedef struct KOYO_CONTOUR_TEMPLATE_RUNTIME_PARAM{
     std::vector<UINT16> search_rect_width;
     std::vector<std::vector<TemplateStruct>> tpls;
 } Koyo_Contour_Template_Runtime_Param;
+
+typedef struct KOYO_POINT{
+    INT16 x;
+    INT16 y;
+} IPoint;
 
 //int cutout_template_image(const cv::Mat &template_image, std::vector<cv::Point> rect, cv::Mat &interesting_template);
 

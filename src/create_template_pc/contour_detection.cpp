@@ -131,11 +131,18 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
             index += sizeof(short);
 
             for (auto const &coord : tpl.cordinates) {
+                IPoint point;
+                point.x = static_cast<INT16>(coord.x);
+                point.y = static_cast<INT16>(coord.y);
+                memcpy(&buf[index], &point, sizeof(IPoint));
+                index += sizeof(IPoint);
+#if 0
                 memcpy(&buf[index], &coord.x, sizeof(short));
                 index += sizeof(short);
 
                 memcpy(&buf[index], &coord.y, sizeof(short));
                 index += sizeof(short);
+#endif
             }
             for (auto const & edgeX : tpl.edgeDerivativeX) {
                 memcpy(&buf[index], &edgeX, sizeof(float));
@@ -278,13 +285,20 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
             // 拷贝特征数据
 //            std::cout << "tpl no ofcoordinate: " << tpl.noOfCordinates << std::endl;
             for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
-
+                IPoint point;
+                point = *((IPoint*) &buf[index]);
+                index += sizeof(IPoint);
+                cv::Point coord;
+                coord.x = point.x;
+                coord.y = point.y;
+#if 0
                 cv::Point coord;
                 coord.x = *((short *) &buf[index]);
                 index += sizeof(short);
 
                 coord.y = *((short *) &buf[index]);
                 index += sizeof(short);
+#endif
                 tpl.cordinates.push_back(coord);
             }
 
@@ -592,8 +606,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-//    cv::imshow("hehe", src);
-//    cvWaitKey(0);
+    cv::imshow("hehe", src);
+    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
