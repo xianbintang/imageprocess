@@ -156,6 +156,8 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
 
     std::cout << buf_size << ", in MB: " << 1.0 * buf_size / 1024 / 1024 << "MB" << std::endl;
     *bufsize = buf_size;
+    std::cout << "after pack" << std::endl;
+    std::cout << *bufsize << ", in MB: " << 1.0 * *bufsize / 1024 / 1024 << "MB" << std::endl;
 #ifdef _DEBUG_LEVEL_HIGH_
     float y1 = buf[buf_size - 4];
     float y2 = buf[buf_size - 8];
@@ -774,7 +776,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 
     for (auto &pyr : pyramid_templates) {
 #ifndef  NDEBUG
-        saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
+//        saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
 #endif
         cv::Mat cannyResult;
         cv::Canny(pyr, cannyResult, sensitity_threshold_high, sensitity_threshold_low);
@@ -1001,9 +1003,9 @@ int get_contours(const UINT8 *yuv, UINT8 *contours[3])
     }
 
 #ifndef NDEBUG
-    cv::imwrite("data//low.jpg", contour_low);
-    cv::imwrite("data//medium.jpg", contour_medium);
-    cv::imwrite("data//high.jpg", contour_high);
+//    cv::imwrite("data//low.jpg", contour_low);
+//    cv::imwrite("data//medium.jpg", contour_medium);
+//    cv::imwrite("data//high.jpg", contour_high);
 #endif
 }
 

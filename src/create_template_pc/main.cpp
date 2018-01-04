@@ -45,7 +45,8 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.algo_strategy = 1;
 
 
-#define _CPU_TEST45_
+//#define _CPU_TEST45_
+#define _KOYO_TEST_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -121,6 +122,20 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.detect_rect_x0 = 134;
     koyo_tool_contour_parameter.detect_rect_y0 = 246;
 
+    koyo_tool_contour_parameter.detect_rect_x1 = 229;
+    koyo_tool_contour_parameter.detect_rect_y1 = 341;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 317;
+    koyo_tool_contour_parameter.detect_rect_y2 = 242;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 226;
+    koyo_tool_contour_parameter.detect_rect_y3 = 154;
+#endif
+
+#ifdef _CPU_TEST45_SOME_
+    koyo_tool_contour_parameter.detect_rect_x0 = 134;
+    koyo_tool_contour_parameter.detect_rect_y0 = 246;
+
     koyo_tool_contour_parameter.detect_rect_x1 = 361;
     koyo_tool_contour_parameter.detect_rect_y1 = 471;
 
@@ -146,17 +161,17 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 #endif
 
 #ifdef _KOYO_TEST_
-    koyo_tool_contour_parameter.detect_rect_x0 = 150;
-    koyo_tool_contour_parameter.detect_rect_y0 = 182;
+    koyo_tool_contour_parameter.detect_rect_x0 = 134;
+    koyo_tool_contour_parameter.detect_rect_y0 = 167;
 
-    koyo_tool_contour_parameter.detect_rect_x1 = 134;
-    koyo_tool_contour_parameter.detect_rect_y1 = 255;
+    koyo_tool_contour_parameter.detect_rect_x1 = 112;
+    koyo_tool_contour_parameter.detect_rect_y1 = 279;
 
-    koyo_tool_contour_parameter.detect_rect_x2 = 393;
-    koyo_tool_contour_parameter.detect_rect_y2 = 313;
+    koyo_tool_contour_parameter.detect_rect_x2 = 410;
+    koyo_tool_contour_parameter.detect_rect_y2 = 339;
 
-    koyo_tool_contour_parameter.detect_rect_x3 = 407;
-    koyo_tool_contour_parameter.detect_rect_y3 = 238;
+    koyo_tool_contour_parameter.detect_rect_x3 = 432;
+    koyo_tool_contour_parameter.detect_rect_y3 = 229;
 #endif
 
 #ifdef _GEAR_TEST_
@@ -259,6 +274,12 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.ext_rect_height = 445;
 #endif
 
+#ifdef _KOYO_TEST_
+    koyo_tool_contour_parameter.ext_rect_x = 110;
+    koyo_tool_contour_parameter.ext_rect_y = 167;
+    koyo_tool_contour_parameter.ext_rect_width = 323;
+    koyo_tool_contour_parameter.ext_rect_height = 174;
+#endif
     UINT8 *bitmap = new UINT8[(sizeof(uchar) * koyo_tool_contour_parameter.ext_rect_height * koyo_tool_contour_parameter.ext_rect_width)];
     int num;
     int k = 0;
@@ -296,7 +317,7 @@ int main(int argc, char **argv)
 
     get_contours(buf, contours);
 
-    cv::Mat cleanedImage = cv::imread("data//bitmap.jpg", 0);
+    cv::Mat cleanedImage = cv::imread("data//roi_ext.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
     // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了

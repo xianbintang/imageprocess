@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 
     // 将模板信息导入到变量kctrp上
     Koyo_Contour_Template_Runtime_Param kctrp;
-    unpack_template("template_file_good", kctrp);
+    unpack_template("template_file_lesscontour", kctrp);
 
     // 进行待测图和模板的匹配
     match_sample_template(sample_image_gray, kctrp);
