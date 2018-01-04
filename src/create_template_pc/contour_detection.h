@@ -7,12 +7,13 @@
 
 //#define _RELEASE_
 //#define _DEBUG_
-#define _DEBUG_LEVEL_HIGH_
+//#define _DEBUG_LEVEL_HIGH_
 //#include <types.h>
 #include <opencv2/core/mat.hpp>
 #include <memory>
 
-const int MAX_NUM_PYRAMID = 5;
+const int MAX_NUM_PYRAMID = 7;
+const int MIN_NUM_PYRAMID = 5;
 const int MAX_DEGREE = 360;
 using UINT16 = unsigned short;
 using INT8 = signed char;
@@ -95,7 +96,7 @@ typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
     UINT32 template_bitmap_size;   //工具模板位图的大小
     UINT16 reserved;
     INT8 bitmap_path[128];
-#ifndef NDEBUG
+#ifdef RUN_PC
     UINT8  *bitmaps;           //检测区域外接矩形位图,
 #else
     UINT8  bitmaps[0];           //检测区域外接矩形位图,

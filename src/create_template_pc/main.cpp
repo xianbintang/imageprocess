@@ -10,7 +10,7 @@
 #include <fstream>
 #include "contour_detection.h"
 
-#ifndef NDEBUG
+#if 0
 void saveMat(cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;

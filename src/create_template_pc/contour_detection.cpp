@@ -18,7 +18,6 @@
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
-#ifdef NDEBUG
 void saveMat(cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
@@ -43,7 +42,6 @@ void saveMatf(cv::Mat mat, const char *path) {
     }
     fclose(fp);
 }
-#endif
 
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
@@ -679,11 +677,11 @@ static float get_angle_step_and_search_width(const cv::Mat &src, cv::Point cente
  */
 
 //#define _DEBUG_
-#ifndef NDEBUG
-std::vector<cv::Point> centers;
-std::vector<float> angle_steps;
-std::vector<cv::Mat> pyramid_templates;
-std::vector<UINT16> search_rect_width;
+#ifdef DEBUG_PRINT
+std::vector<cv::Point> centers_debug;
+std::vector<float> angle_steps_debug;
+std::vector<cv::Mat> pyramid_templates_debug;
+std::vector<UINT16> search_rect_width_debug;
 #else
 
 #endif
@@ -723,9 +721,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     TimeTracker tt1;
     tt1.start();
     std::vector<cv::Mat> pyramid_bitmaps;
-#ifdef NDEBUG
     std::vector<cv::Mat> pyramid_templates;
-#endif
     pyramid_templates.push_back(src);
     pyramid_bitmaps.push_back(bitMap);
 
@@ -769,11 +765,10 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     pyramid_templates[0] = after_gaus;
 
     // 图像的质心
-#ifdef NDEBUG
     std::vector<cv::Point> centers;
     std::vector<float> angle_steps;
     std::vector<UINT16> search_rect_width;
-#endif
+
     for (auto &pyr : pyramid_templates) {
 #ifndef  NDEBUG
         saveMat(pyr, (std::string("data//") + std::to_string(pyr.rows) + std::to_string(pyr.cols)).c_str());
@@ -792,7 +787,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 #ifndef NDEBUG
         std::cout << "num of coordinate this level: " << num_of_contour << std::endl;
 #endif
-        if (num_of_contour <= MIN_CONTOUR_PYRA) {
+        if (num_of_contour <= MIN_CONTOUR_PYRA && optimal_pyr_level >= MIN_NUM_PYRAMID) {
             break;
         }
         ++optimal_pyr_level;
@@ -845,15 +840,24 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 #endif
     //建立完模板需要将模板发送给客户端，需要发送的就是tpls这个数据结构
 
+
+
     koyo_contour_template_runtime_param.run_time_npyramid = optimal_pyr_level;
     koyo_contour_template_runtime_param.search_angel_nstep = angle_steps;
     // todo 换成move操作会好一些吧
     koyo_contour_template_runtime_param.tpls = tpls;
     koyo_contour_template_runtime_param.search_rect_width = search_rect_width;
+#ifdef DEBUG_PRINT
+    centers_debug = centers;
+    angle_steps_debug = angle_steps;
+    pyramid_templates_debug = pyramid_templates;
+    search_rect_width_debug = search_rect_width;
+#endif
+
+
     return 0;
 }
 
-#ifndef NDEBUG
 static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char* template_data)
 {
     std::cout << std::endl << "--------test unpack template-----------" << std::endl;
@@ -867,19 +871,19 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
     // 测试恢复出来的模板
     for (int i = 0; i < kctrp.run_time_npyramid; ++i) {
         int k = 0;
-        std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, pyramid_templates[i].rows - 1}, {pyramid_templates[i].cols - 1, 0}};
-        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps[i]) {
+        std::vector<cv::Point> cur_rect = {{0,0}, {0, pyramid_templates_debug[i].rows - 1}, {pyramid_templates_debug[i].cols - 1, pyramid_templates_debug[i].rows - 1}, {pyramid_templates_debug[i].cols - 1, 0}};
+        for (double j = 0.0; j < MAX_DEGREE; j += angle_steps_debug[i]) {
             TemplateStruct tpl = kctrp.tpls[i][k++];
             auto rect = cur_rect;
             cv::Mat rotated_image;
             // 还是无法保证完全在图片框内
-            auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
+            auto rotate_matrix = rotate_image(pyramid_templates_debug[i], rotated_image, centers_debug[i], j);
             rotate_rect(rect, rotate_matrix);
             draw_template(rotated_image, tpl);
-            if(static_cast<int>(j) % 60 == 0)
-                cv::imwrite("data//" + std::string("level") + std::to_string(i) + std::string("angle")+ std::to_string(j) + ".jpg", rotated_image);
+//            if(static_cast<int>(j) % 60 == 0)
+//                cv::imwrite("data//" + std::string("level") + std::to_string(i) + std::string("angle")+ std::to_string(j) + ".jpg", rotated_image);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
-            cvWaitKey(0);
+//            cvWaitKey(0);
         }
     }
     // 打印倒数二层上的金字塔的模板图片以及相应信息
@@ -891,12 +895,11 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
         auto target = *iter->cbegin();
         auto level = kctrp.tpls.crend() - iter - 1;
         draw_template(pyramid_template[level], target);
-        std::cout << "angle step:" << angle_steps[level] << std::endl;
+        std::cout << "angle step:" << angle_steps_debug[level] << std::endl;
         print_tpl(std::cout,  target) << std::endl;
     }
 
 }
-#endif
 
 
 /*
@@ -967,8 +970,8 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     std::cout << "test pack template" << std::endl;
     auto template_data = pack_template(koyo_contour_template_runtime_param, buf_size);
 
-#ifndef  NDEBUG
-    print_debug_info(pyramid_templates, template_data.get());
+#ifdef  DEBUG_PRINT
+    print_debug_info(pyramid_templates_debug, template_data.get());
 #endif
 
 //    cv::imshow("eh" ,template_roi);
