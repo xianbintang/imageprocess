@@ -356,10 +356,12 @@ static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Poi
     int height_rotate = int(width * fabs(a) + height * fabs(b));
     float map[6];
     cv::Mat map_matrix = cv::Mat(2, 3, CV_32F, map);
-// 旋转中心
-    CvPoint2D32f center = cvPoint2D32f(centerP.x, centerP.y);
+//    CvPoint2D32f center = cvPoint2D32f(centerP.x, centerP.y);
+// 旋转中心, 以原始图片中心作为旋转中心而不是质心
+    CvPoint2D32f center = cvPoint2D32f( width / 2.0, height / 2.0);
     CvMat map_matrix2 = map_matrix;
     cv2DRotationMatrix(center, degree, 1.0, &map_matrix2);
+    // 这里不能改
     map[2] += (width_rotate - width) / 2.0;
     map[5] += (height_rotate - height) / 2.0;
     cv::warpAffine(src, dst, map_matrix, cv::Size(width_rotate, height_rotate), 1, 0, 0);
@@ -420,6 +422,7 @@ static int cutout_template_image(const cv::Mat &template_image, std::vector<cv::
     int rect_height = calAlign(rect[1].y - rect[0].y, 16);
     // 保证不会超出原图大小
     // todo 隐藏的问题是16可能减得太多了
+    // fixme 为什么要减掉？
     if(rect_width > rect[3].x - rect[0].x) rect_width -= 16;
     if(rect_height> rect[1].y - rect[0].y) rect_height-= 16;
 
@@ -918,7 +921,6 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x2, koyo_tool_contour_parameter.detect_rect_y2},
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
-#ifndef NDEBUG
     // 获取擦除后的轮廓
 #if 0
     cv::Mat template_roi_ext1;
@@ -931,7 +933,6 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             ));
     // roi_ext.jpg 是客户端传下来的位图, 对其进行canny并且保存其轮廓文件图就可以了
     cv::imwrite("data//roi_ext.jpg", template_roi_ext1);
-#endif
 #endif
 
     // todo 读取位图，这里现在是用读取图像的，应该改成从bitmap中获取
@@ -958,6 +959,9 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 
     // 从原图中获取模板部分的位图
     cutout_template_image(template_image, rect, template_roi);
+
+    // 保证两次截取出来的图大小一样
+    assert(template_roi.size == bitmapCleaned.size);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
 //    template_roi = template_image;
 
@@ -974,6 +978,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
     print_debug_info(pyramid_templates_debug, template_data.get());
 #endif
 
+    std::cout << "*****************" << buf_size << std::endl;
 //    cv::imshow("eh" ,template_roi);
 //    cvWaitKey(0);
     return template_data.release();

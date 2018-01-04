@@ -9,7 +9,7 @@ set(CMAKE_BUILD_TYPE "Debug")
 
 if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
     set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -Wno-unused-variable ")
-#    add_definitions(-DRUN_PC)
+    add_definitions(-DRUN_PC)
     add_definitions(-DDEBUG_PRINT)
 #    add_definitions(-DNDEBUG)
 else( CMAKE_BUILD_TYPE STREQUAL "Release" )
