@@ -45,8 +45,8 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.algo_strategy = 1;
 
 
-//#define _CPU_TEST45_
-#define _KOYO_TEST_
+#define _CPU_TEST45_
+//#define _KOYO_TEST_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -283,7 +283,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     UINT8 *bitmap = new UINT8[(sizeof(uchar) * koyo_tool_contour_parameter.ext_rect_height * koyo_tool_contour_parameter.ext_rect_width)];
     int num;
     int k = 0;
-    std::ifstream fin("data//contour_erased_all.txt");
+    std::ifstream fin("data//contour_erased.txt");
     if(!fin.is_open()) {
         exit(-1);
     }
@@ -292,7 +292,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     }
 //     在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
     koyo_tool_contour_parameter.bitmaps = bitmap;
-    koyo_tool_contour_parameter.detect_region_type = 0;
+    koyo_tool_contour_parameter.detect_region_type = 1;
 #if 0
 
     koyo_tool_contour_parameter.detect_circ_x = 280;
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 
     get_contours(buf, contours);
 
-    cv::Mat cleanedImage = cv::imread("data//roi_ext.jpg", 0);
+    cv::Mat cleanedImage = cv::imread("data//bitmap_big.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
     // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了

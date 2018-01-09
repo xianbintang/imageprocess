@@ -918,6 +918,8 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
     cv::Mat bitmapCleaned;
     cv::Mat template_roi_ext;
     cv::Mat template_roi;
+
+#if 0
     if (koyo_tool_contour_parameter->detect_region_type == 1) {
         // 设置参数截取模板图片
         std::vector<cv::Point> rect =  {
@@ -973,6 +975,17 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
         // 从外接矩形位图中获取模板部分的位图
         template_roi = template_image(cv::Rect(koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->ext_rect_y, koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height));
     }
+#endif
+    // 不管圆形还是矩形，都是一样的操作
+    // 将位图取出来，将原图外接矩形截取下来
+    bitmapCleaned.create(koyo_tool_contour_parameter->ext_rect_height, koyo_tool_contour_parameter->ext_rect_width, CV_8UC1);
+
+    // 从bitmap中恢复被擦除的位图
+    bitmap2Mat(bitmapCleaned, bitmapCleaned, koyo_tool_contour_parameter->bitmaps,
+               koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height);
+
+    // 从外接矩形位图中获取模板部分的位图
+    template_roi = template_image(cv::Rect(koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->ext_rect_y, koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height));
     // 保证两次截取出来的图大小一样
     assert(template_roi.size == bitmapCleaned.size);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
