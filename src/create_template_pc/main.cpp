@@ -283,7 +283,7 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     UINT8 *bitmap = new UINT8[(sizeof(uchar) * koyo_tool_contour_parameter.ext_rect_height * koyo_tool_contour_parameter.ext_rect_width)];
     int num;
     int k = 0;
-    std::ifstream fin("data//contour_erased.txt");
+    std::ifstream fin("data//contour_erased_all.txt");
     if(!fin.is_open()) {
         exit(-1);
     }
@@ -292,6 +292,19 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     }
 //     在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
     koyo_tool_contour_parameter.bitmaps = bitmap;
+    koyo_tool_contour_parameter.detect_region_type = 0;
+#if 0
+
+    koyo_tool_contour_parameter.detect_circ_x = 280;
+    koyo_tool_contour_parameter.detect_circ_y = 250;
+    koyo_tool_contour_parameter.detect_circ_radius = 150;
+    koyo_tool_contour_parameter.detect_region_type = 0;
+
+    koyo_tool_contour_parameter.ext_rect_x = 130;
+    koyo_tool_contour_parameter.ext_rect_y = 100;
+    koyo_tool_contour_parameter.ext_rect_width = 300;
+    koyo_tool_contour_parameter.ext_rect_height = 300;
+#endif
 }
 
 
@@ -330,7 +343,7 @@ int main(int argc, char **argv)
 
     // 返回指向需要被发送的内存缓冲区的指针
     int buf_size = 0;
-    create_template(buf, koyo_tool_contour_parameter, &buf_size);
+    create_template(buf, &koyo_tool_contour_parameter, &buf_size);
 
     return 0;
 }

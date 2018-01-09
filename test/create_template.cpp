@@ -1,19 +1,14 @@
-//
-// Created by xianb on 2017/11/28.
-//
-
-
+﻿#include "create_template.h"
+#include <QDebug>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv/cv.hpp>
 #include <iostream>
-#include <TimeTracker.h>
 #include <queue>
 #include <cstdio>
 #include <fstream>
 #include <basetsd.h>
-#include "contour_detection.h"
-
+#include "TimeTracker.h"
 
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
@@ -155,6 +150,7 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
     }
 
     std::cout << buf_size << ", in MB: " << 1.0 * buf_size / 1024 / 1024 << "MB" << std::endl;
+    std::cout << "address of " << bufsize << std::endl;
     *bufsize = buf_size;
     std::cout << "after pack" << std::endl;
     std::cout << *bufsize << ", in MB: " << 1.0 * *bufsize / 1024 / 1024 << "MB" << std::endl;
@@ -609,8 +605,8 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-    cv::imshow("hehe", src);
-    cvWaitKey(0);
+//    cv::imshow("hehe", src);
+//    cvWaitKey(0);
 }
 
 // TODO 发送给客户端以后需要释放
@@ -694,10 +690,12 @@ std::vector<UINT16> search_rect_width_debug;
 static void bitmap2Mat(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 width, UINT16 height) {
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-#ifndef RUN_PC
+#ifdef NDEBUG
             //客户端传来的是1 0
             dst.at<uchar>(i, j) = static_cast<uchar>(bitmap[i * width + j] * 255);
-#else
+#endif
+
+#ifndef NDEBUG
             dst.at<uchar>(i, j) = bitmap[i * width + j];
 #endif
         }
@@ -717,7 +715,7 @@ static void Mat2bitmap(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 
  * src是截取出来的模板图片
  * bitmapCleaned是位图，大小和src一致
  */
-static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
+static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_Tool_Contour_Parameter* koyo_tool_contour_parameter, Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param)
 {
     // 运行完成后需要将这个内容发送给嵌入式
 
@@ -730,13 +728,13 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 
     UINT8 sensitity_threshold_low, sensitity_threshold_high;
 
-    if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_LOW) {
+    if (koyo_tool_contour_parameter->sensitivity == CONTOUR_ACCURACY_LOW) {
         sensitity_threshold_low = 10;
         sensitity_threshold_high = 80;
-    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_MEDIUM) {
+    } else if (koyo_tool_contour_parameter->sensitivity == CONTOUR_ACCURACY_MEDIUM) {
         sensitity_threshold_low = 30;
         sensitity_threshold_high = 150;
-    } else if (koyo_tool_contour_parameter.sensitivity == CONTOUR_ACCURACY_HIGH) {
+    } else if (koyo_tool_contour_parameter->sensitivity == CONTOUR_ACCURACY_HIGH) {
         sensitity_threshold_low = 60;
         sensitity_threshold_high = 220;
     }
@@ -908,71 +906,74 @@ static void print_debug_info(const std::vector<cv::Mat> &pyramid_template, char*
 /*
  *  提供给客户端的接口
  * */
-char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_contour_parameter, int *buf_size)
+char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter* koyo_tool_contour_parameter, int *buf_size)
 {
+
+//    QString filename1 = "C:\\Users\\1503\\Desktop\\transferBitmapcreate_template2.txt";
+
+//    QFile file1(filename1);
+
+//    file1.open(QIODevice::WriteOnly|QIODevice::Text);
+
+//    QTextStream out1(&file1);
+//    qDebug()<<koyo_tool_contour_parameter->ext_rect_height;
+//    qDebug()<<koyo_tool_contour_parameter->bitmap_total_size;
+//    for(int i=0;i<koyo_tool_contour_parameter->ext_rect_height*koyo_tool_contour_parameter->ext_rect_width;i++){
+//        out1<<koyo_tool_contour_parameter->bitmaps[i]<<endl;
+//    }
     // 获取灰度图
     auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
 
-    /* TODO 考虑不要旋转了，直接像圆那样截取出来吧 */
-    /* 圆形检测区域不做复杂的旋转后截取，只有矩形的才做旋转后截取 */
-    cv::Mat bitmapCleaned;
-    cv::Mat template_roi_ext;
+    // 设置参数截取模板图片
     cv::Mat template_roi;
-    if (koyo_tool_contour_parameter->detect_region_type == 1) {
-        // 设置参数截取模板图片
-        std::vector<cv::Point> rect =  {
-                {koyo_tool_contour_parameter->detect_rect_x0, koyo_tool_contour_parameter->detect_rect_y0},
-                {koyo_tool_contour_parameter->detect_rect_x1, koyo_tool_contour_parameter->detect_rect_y1},
-                {koyo_tool_contour_parameter->detect_rect_x2, koyo_tool_contour_parameter->detect_rect_y2},
-                {koyo_tool_contour_parameter->detect_rect_x3, koyo_tool_contour_parameter->detect_rect_y3},
-        };
-        // 获取擦除后的轮廓
+    std::vector<cv::Point> rect =  {
+            {koyo_tool_contour_parameter->detect_rect_x0, koyo_tool_contour_parameter->detect_rect_y0},
+            {koyo_tool_contour_parameter->detect_rect_x1, koyo_tool_contour_parameter->detect_rect_y1},
+            {koyo_tool_contour_parameter->detect_rect_x2, koyo_tool_contour_parameter->detect_rect_y2},
+            {koyo_tool_contour_parameter->detect_rect_x3, koyo_tool_contour_parameter->detect_rect_y3},
+    };
+    // 获取擦除后的轮廓
 #if 0
-        cv::Mat template_roi_ext1;
+    cv::Mat template_roi_ext1;
     auto tmp1 = template_image;
     template_roi_ext1 = tmp1(
-            cv::Rect(koyo_tool_contour_parameter.ext_rect_x,
-                     koyo_tool_contour_parameter.ext_rect_y,
-                     koyo_tool_contour_parameter.ext_rect_width,
-                     koyo_tool_contour_parameter.ext_rect_height
+            cv::Rect(koyo_tool_contour_parameter->ext_rect_x,
+                     koyo_tool_contour_parameter->ext_rect_y,
+                     koyo_tool_contour_parameter->ext_rect_width,
+                     koyo_tool_contour_parameter->ext_rect_height
             ));
     // roi_ext.jpg 是客户端传下来的位图, 对其进行canny并且保存其轮廓文件图就可以了
     cv::imwrite("data//roi_ext.jpg", template_roi_ext1);
 #endif
 
-        // todo 读取位图，这里现在是用读取图像的，应该改成从bitmap中获取
-        template_roi_ext.create(koyo_tool_contour_parameter->ext_rect_height, koyo_tool_contour_parameter->ext_rect_width, CV_8UC1);
+    // todo 读取位图，这里现在是用读取图像的，应该改成从bitmap中获取
+    cv::Mat template_roi_ext;
+    template_roi_ext.create(koyo_tool_contour_parameter->ext_rect_height, koyo_tool_contour_parameter->ext_rect_width, CV_8UC1);
 
-        // 从bitmap中恢复被擦除的位图
-        bitmap2Mat(template_roi_ext, template_roi_ext, koyo_tool_contour_parameter->bitmaps,
-                   koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height);
-
-        std::vector<cv::Point> rect1 =  {
-                {koyo_tool_contour_parameter->detect_rect_x0 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y0 - koyo_tool_contour_parameter->ext_rect_y},
-                {koyo_tool_contour_parameter->detect_rect_x1 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y1 - koyo_tool_contour_parameter->ext_rect_y},
-                {koyo_tool_contour_parameter->detect_rect_x2 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y2 - koyo_tool_contour_parameter->ext_rect_y},
-                {koyo_tool_contour_parameter->detect_rect_x3 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y3 - koyo_tool_contour_parameter->ext_rect_y},
-        };
-        // 从外接矩形位图中获取模板部分的位图
-        cutout_template_image(template_roi_ext, rect1, bitmapCleaned);
+    // 从bitmap中恢复被擦除的位图
+    bitmap2Mat(template_roi_ext, template_roi_ext, koyo_tool_contour_parameter->bitmaps,
+               koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height);
+   // cv::imshow("hehe", template_roi_ext);
+    cv::waitKey(0);
+  //  saveMat(template_roi_ext, "F:\\weitu1.jpg");
+    qDebug()<<"saveMat finish";
+    std::vector<cv::Point> rect1 =  {
+            {koyo_tool_contour_parameter->detect_rect_x0 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y0 - koyo_tool_contour_parameter->ext_rect_y},
+            {koyo_tool_contour_parameter->detect_rect_x1 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y1 - koyo_tool_contour_parameter->ext_rect_y},
+            {koyo_tool_contour_parameter->detect_rect_x2 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y2 - koyo_tool_contour_parameter->ext_rect_y},
+            {koyo_tool_contour_parameter->detect_rect_x3 - koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->detect_rect_y3 - koyo_tool_contour_parameter->ext_rect_y},
+    };
+    cv::Mat bitmapCleaned;
+    // 从外接矩形位图中获取模板部分的位图
+    cutout_template_image(template_roi_ext, rect1, bitmapCleaned);
 //    cv::imwrite("data//result.jpg", result);
 //    std::cout << result.cols << " " << result.rows << std::endl;
 
-        // 这里应该给出bitMapcleaned, 现在bitmapCleaned是轮廓位图
+    // 这里应该给出bitMapcleaned, 现在bitmapCleaned是轮廓位图
 
-        // 从原图中获取模板部分的位图
-        cutout_template_image(template_image, rect, template_roi);
-    } else if (koyo_tool_contour_parameter->detect_region_type == 0) {
-        // 将位图取出来，将原图外接矩形截取下来
-        bitmapCleaned.create(koyo_tool_contour_parameter->ext_rect_height, koyo_tool_contour_parameter->ext_rect_width, CV_8UC1);
+    // 从原图中获取模板部分的位图
+    cutout_template_image(template_image, rect, template_roi);
 
-        // 从bitmap中恢复被擦除的位图
-        bitmap2Mat(bitmapCleaned, bitmapCleaned, koyo_tool_contour_parameter->bitmaps,
-                   koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height);
-
-        // 从外接矩形位图中获取模板部分的位图
-        template_roi = template_image(cv::Rect(koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->ext_rect_y, koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height));
-    }
     // 保证两次截取出来的图大小一样
     assert(template_roi.size == bitmapCleaned.size);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
@@ -981,7 +982,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
     // 使用截取出来的图片进行轮廓建立
     // 这之后擦除的代码不用改，保证这里传入的bitmap是对着的就行了
     Koyo_Contour_Template_Runtime_Param koyo_contour_template_runtime_param;
-    do_create_template(template_roi, bitmapCleaned, *koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
+    do_create_template(template_roi, bitmapCleaned, koyo_tool_contour_parameter, koyo_contour_template_runtime_param);
 
     // 打包后的template_data是unique_ptr上的指针，调用release来获取原始指针，但是要记得delete []这个内存
     std::cout << "test pack template" << std::endl;
@@ -994,6 +995,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
     std::cout << "*****************" << buf_size << std::endl;
 //    cv::imshow("eh" ,template_roi);
 //    cvWaitKey(0);
+    std::cout << "now all done" << std::endl;
     return template_data.release();
 }
 

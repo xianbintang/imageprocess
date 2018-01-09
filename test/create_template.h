@@ -1,19 +1,10 @@
-//
-// Created by xianb on 2017/11/28.
-//
-
+﻿
 #ifndef KOYO_CONTOUR_DETECTION_H
 #define KOYO_CONTOUR_DETECTION_H
-
-//#define _RELEASE_
-//#define _DEBUG_
-//#define _DEBUG_LEVEL_HIGH_
-//#include <types.h>
+#include<koyo_parameter.h>
 #include <opencv2/core/mat.hpp>
 #include <memory>
-
-const int MAX_NUM_PYRAMID = 7;
-const int MIN_NUM_PYRAMID = 5;
+#include<QFile>
 const int MAX_DEGREE = 360;
 using UINT16 = unsigned short;
 using INT8 = signed char;
@@ -23,6 +14,10 @@ const int MIN_CONTOUR_PYRA = 80;
 const int WIDTH = 640;
 const int HEIGHT = 480;
 
+const int MAX_NUM_PYRAMID = 7;
+const int MIN_NUM_PYRAMID = 5;
+#define DEBUG_PRINT
+#define NDEBUG
 
 #define CONTOUR_ACCURACY_LOW      0
 #define CONTOUR_ACCURACY_MEDIUM   1
@@ -52,56 +47,56 @@ typedef struct TemplateMatch
     std::vector<float>			edgeDerivativeY;	//gradient in Y direction
 } TemplateStruct;
 
-// 工具级别的参数, 客户端传下来的
-typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
-{
-    UINT16 detect_region_type;   //检测区域形状 矩形是1，原型是0
-    INT8   tool_name[32];        //工具名称
+//// 工具级别的参数, 客户端传下来的
+//typedef struct KOYO_TOOL_CONTOUR_PARAMETER_
+//{
+//    UINT16 detect_region_type;   //检测区域形状
+//    INT8   tool_name[32];        //工具名称
 
-    /* 矩形检测框参数 */
-    UINT16 detect_rect_x0;        //检测矩形框左上点横坐标
-    UINT16 detect_rect_y0;        //检测矩形框左上点纵坐标
-    UINT16 detect_rect_x1;        //检测矩形框左下点横坐标
-    UINT16 detect_rect_y1;        //检测矩形框左下点纵坐标
-    UINT16 detect_rect_x2;        //检测矩形框右下点横坐标
-    UINT16 detect_rect_y2;        //检测矩形框右下点纵坐标
-    UINT16 detect_rect_x3;        //检测矩形框右上点横坐标
-    UINT16 detect_rect_y3;        //检测矩形框右上点纵坐标
+//    /* 矩形检测框参数 */
+//    UINT16 detect_rect_x0;        //检测矩形框左上点横坐标
+//    UINT16 detect_rect_y0;        //检测矩形框左上点纵坐标
+//    UINT16 detect_rect_x1;        //检测矩形框左下点横坐标
+//    UINT16 detect_rect_y1;        //检测矩形框左下点纵坐标
+//    UINT16 detect_rect_x2;        //检测矩形框右下点横坐标
+//    UINT16 detect_rect_y2;        //检测矩形框右下点纵坐标
+//    UINT16 detect_rect_x3;        //检测矩形框右上点横坐标
+//    UINT16 detect_rect_y3;        //检测矩形框右上点纵坐标
 
-    /* 检测圆参数 */
-    UINT16 detect_circ_x;        //检测圆心横坐标
-    UINT16 detect_circ_y;        //检测圆心纵坐标
-    UINT16 detect_circ_radius;   //检测圆半径
+//    /* 检测圆参数 */
+//    UINT16 detect_circ_x;        //检测圆心横坐标
+//    UINT16 detect_circ_y;        //检测圆心纵坐标
+//    UINT16 detect_circ_radius;   //检测圆半径
 
-    /* 外接矩形区域参数 */
-    UINT16 ext_rect_x;	         //检测外接矩形起始点横坐标
-    UINT16 ext_rect_y;           //检测外接矩形起始点纵坐标
-    UINT16 ext_rect_width;       //检测外接矩形宽度
-    UINT16 ext_rect_height;      //检测外接矩形高度
+//    /* 外接矩形区域参数 */
+//    UINT16 ext_rect_x;	         //检测外接矩形起始点横坐标
+//    UINT16 ext_rect_y;           //检测外接矩形起始点纵坐标
+//    UINT16 ext_rect_width;       //检测外接矩形宽度
+//    UINT16 ext_rect_height;      //检测外接矩形高度
 
-    /* 搜索区域参数 */
-    UINT16 search_rect_x;        //搜索区域起始点横坐标
-    UINT16 search_rect_y;        //搜索区域起始点纵坐标
-    UINT16 search_rect_width;    //搜索区域宽度
-    UINT16 search_rect_height;   //搜索区域高度
+//    /* 搜索区域参数 */
+//    UINT16 search_rect_x;        //搜索区域起始点横坐标
+//    UINT16 search_rect_y;        //搜索区域起始点纵坐标
+//    UINT16 search_rect_width;    //搜索区域宽度
+//    UINT16 search_rect_height;   //搜索区域高度
 
-    UINT8  sensitivity;          //搜索灵敏度
-    UINT8  algo_strategy;
-    UINT16 angle_range;          //搜索角度范围
+//    UINT8  sensitivity;          //搜索灵敏度
+//    UINT8  algo_strategy;
+//    UINT16 angle_range;          //搜索角度范围
 
-    UINT16 top_threshold;        //处理结果阈值上限
-    UINT16 bot_threshold;        //处理结果阈值下限
+//    UINT16 top_threshold;        //处理结果阈值上限
+//    UINT16 bot_threshold;        //处理结果阈值下限
 
-    UINT32 bitmap_total_size;          //位图大小,单位是bit
-    UINT32 template_bitmap_size;   //工具模板位图的大小
-    UINT16 reserved;
-    INT8 bitmap_path[128];
-#ifdef RUN_PC
-    UINT8  *bitmaps;           //检测区域外接矩形位图,
-#else
-    UINT8  bitmaps[0];           //检测区域外接矩形位图,
-#endif
-} Koyo_Tool_Contour_Parameter;
+//    UINT32 bitmap_total_size;          //位图大小,单位是bit
+//    UINT32 template_bitmap_size;   //工具模板位图的大小
+//    UINT16 reserved;
+//    INT8 bitmap_path[128];
+//#ifndef NDEBUG
+//    UINT8  *bitmaps;           //检测区域外接矩形位图,
+//#else
+//    UINT8  bitmaps[0];           //检测区域外接矩形位图,
+//#endif
+//} Koyo_Tool_Contour_Parameter;
 
 // 把这些东西发送给传感器
 
@@ -124,7 +119,7 @@ typedef struct KOYO_POINT{
  * @return 返回值是需要向传感器发送的buf缓冲区的指针，传过去以后由调用create_template的函数进行释放。
  * */
 //char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter);
-char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_contour_parameter, int *buf_size);
+char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_contour_parameter, int *buf_size);
 int get_contours(const UINT8 *yuv, UINT8 *contours[3]);
 //std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param);
 //int unpack_template(const Koyo_Contour_Template_Runtime_Param &koyo_contour_template_runtime_param, std::unique_ptr<char[]> template_data);
