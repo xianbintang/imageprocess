@@ -107,3 +107,6 @@ target_link_libraries(myFilter ${OpenCV_LIBS})
 
 add_executable(cydpc test/cydpc/contour_detection.h test/cydpc/contour_detection.cpp test/cydpc/TimeTracker.h test/cydpc/main.cpp)
 target_link_libraries(cydpc ${OpenCV_LIBS})
+
+add_executable(testinrect test/color_test/test_inrect.cpp)
+target_link_libraries(testinrect ${OpenCV_LIBS})
