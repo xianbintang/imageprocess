@@ -11,8 +11,8 @@
 using namespace cv;
 
 bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
-void remove_duplicates(Circle circles[], int num);
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region);
+void remove_duplicates(std::vector<Circle> &circles, int num);
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region);
 
 void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
 {
@@ -56,7 +56,7 @@ inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r,
 }
 
 
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region)
+void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region)
 {
     int radiusRange = maxRadius - minRadius;
     int regionx = region.center.x - region.radius;
@@ -219,7 +219,9 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
             circle.center = center;
             circle.radius = radius;
             circle.score = score;
-            circles[j++] = circle;
+//            circles[j++] = circle;
+            circles.push_back(circle);
+            ++j;
 //            circle(coins, center, radius - 1, Scalar(0, 0, 255), lineThickness, lineType, shift);
         }
     }
@@ -288,8 +290,10 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     int step = width / 30;
 //    int step = 10;
 
-    Circle circles[20];
-    Circle total_circles[100];
+//    Circle circles[20];
+//    Circle total_circles[100];
+
+    std::vector<Circle> total_circles;
     Region region;
 //    region.center.x = 1.0 / 2 * image.cols;
 //    region.center.y = 1.0 / 2 * image.rows;
@@ -302,9 +306,17 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += 20) {
+        std::vector<Circle> circles;
         hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
         for (int i = 0; i < num_circles; ++i) {
-            total_circles[num_total_circles++] = circles[i];
+//            total_circles[num_total_circles++] = circles[i];
+//            total_circles[num_total_circles++] = circles[i];
+//            total_circles.push_back(circles[i]);
+//            num_total_circles++;
+        }
+        for (auto iter = circles.cbegin(); iter != circles.cend(); ++iter) {
+            total_circles.push_back(*iter);
+            num_total_circles++;
         }
     }
     int j = 0;
@@ -394,7 +406,7 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *s
 }
 
 /* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
-void remove_duplicates(Circle circles[], int num)
+void remove_duplicates(std::vector<Circle> &circles, int num)
 {
     for (int i = 0; i < num; ++i) {
         for (int j = i + 1; j < num; ++j) {
