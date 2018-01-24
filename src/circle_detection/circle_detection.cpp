@@ -10,32 +10,34 @@
 
 using namespace cv;
 
-bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
+//bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
 void remove_duplicates(std::vector<Circle> &circles, int num);
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region);
+bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_param, double *score);
+//void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region);
+void hough(Circle_runtime_param &circle_runtime_param, double threshold, int minRadius, int maxRadius, double distance, std::vector<Circle> &circles, int *num_circles);
 
-void sobel(Mat img, Mat &sdx, Mat &sdy, Mat &mag, Mat &dist)
+void sobel(Circle_runtime_param &circle_runtime_param)
 {
     short acc_dx = 0, acc_dy = 0;         //accumulators
 //    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
 //    float k2 [] = {-1,0,1,-2,0,2,-1,0,1};//{-2,0,2,-4,0,4,-2,0,2};//{-1,0,1,-2,0,2,-1,0,1};    //sobel kernal dy
 
-    cv::Sobel(img, sdx, CV_16S, 1, 0, 3);
-    cv::Sobel(img, sdy, CV_16S, 0, 1, 3);
+    cv::Sobel(circle_runtime_param.img_gray, circle_runtime_param.sdx, CV_16S, 1, 0, 3);
+    cv::Sobel(circle_runtime_param.img_gray, circle_runtime_param.sdy, CV_16S, 0, 1, 3);
 
     int ct = 0;
-    for(int i=0; i<img.rows; i++) {
-        for(int j=0; j<img.cols; j++) {
-            acc_dx = (short)sdx.at<short>(i, j);
-            acc_dy = (short)sdy.at<short>(i, j);
-            mag.at<uchar>(i,j) = (sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 220? 255 : 0;
+    for(int i=0; i<circle_runtime_param.img_gray.rows; i++) {
+        for(int j=0; j<circle_runtime_param.img_gray.cols; j++) {
+            acc_dx = (short)circle_runtime_param.sdx.at<short>(i, j);
+            acc_dy = (short)circle_runtime_param.sdy.at<short>(i, j);
+            circle_runtime_param.mag.at<uchar>(i,j) = (sqrt(acc_dy*acc_dy + acc_dx*acc_dx)) > 220? 255 : 0;
             if(sqrt(acc_dy*acc_dy + acc_dx*acc_dx)> 220) {
                 ++ct;
             }
             /*
              * TODO dist可以利用查表实现，如果acc_dy和acc_dx能够归一化到8位即可
              * */
-            dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
+            circle_runtime_param.dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }
     }
@@ -56,8 +58,12 @@ inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r,
 }
 
 
-void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region)
+//void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region)
+void hough(Circle_runtime_param &circle_runtime_param, double threshold, int minRadius, int maxRadius, double distance, std::vector<Circle> &circles, int *num_circles)
 {
+    Mat img_data = circle_runtime_param.mag, dist = circle_runtime_param.dist, sdx = circle_runtime_param.sdx, sdy = circle_runtime_param.sdy;
+    Mat h_acc = circle_runtime_param.h_acc, coins = circle_runtime_param.coins;
+    Region region = circle_runtime_param.region;
     int radiusRange = maxRadius - minRadius;
     int regionx = region.center.x - region.radius;
     int regiony = region.center.y - region.radius;
@@ -214,7 +220,8 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         Point2f center(xCoord, yCoord);
         double score;
 //        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
-        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy, &score)) {
+//        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy, &score)) {
+        if (is_circle(Point(xCoord, yCoord), radius, circle_runtime_param, &score)) {
             Circle circle;
             circle.center = center;
             circle.radius = radius;
@@ -254,6 +261,8 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 {
     // 获取灰度图
 
+    Circle_runtime_param circle_runtime_param;
+
     Mat image, img_grey, img_grey1;     //input mat
     Mat dx,dy,mag,dist, edge;
     Mat dx_out, dy_out, dis_out;  //final output mat
@@ -262,17 +271,18 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
     img_grey = image;
 
-    dx.create(img_grey.rows, img_grey.cols, CV_16SC1);
-    dy.create(img_grey.rows, img_grey.cols, CV_16SC1);
-    mag.create(img_grey.rows, img_grey.cols, CV_8UC1);
-    dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
-    edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
-
-    h_acc.create(mag.rows, mag.cols, CV_8UC1);
+#if 1
+    circle_runtime_param.mag.create(img_grey.rows, img_grey.cols, CV_8UC1);
+    circle_runtime_param.dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
+    circle_runtime_param.edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
+    circle_runtime_param.h_acc.create(mag.rows, mag.cols, CV_8UC1);
+    circle_runtime_param.img_gray = img_grey;
+#endif
     TimeTracker tt;
     tt.start();
 //    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
-    sobel(img_grey, dx, dy, mag, dist);
+//    sobel(img_grey, dx, dy, mag, dist);
+    sobel(circle_runtime_param);
 //    GaussianBlur(img_grey, img_grey, Size(5, 5), 2, 2);
 //    Canny(img_grey, edge, 30, 170, 3);
 //    imshow("edge", edge);
@@ -304,10 +314,11 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     region.center.y = height / 2;
     region.radius = height / 2.5;
 
+    circle_runtime_param.region = region;
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += 20) {
         std::vector<Circle> circles;
-        hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
+        hough(circle_runtime_param, 10, r - 10, r + 10, 20, circles, &num_circles);
         for (int i = 0; i < num_circles; ++i) {
 //            total_circles[num_total_circles++] = circles[i];
 //            total_circles[num_total_circles++] = circles[i];
@@ -371,14 +382,15 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 
 
 /* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
-bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
+//bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
+bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_param, double *score)
 {
 //    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
 //                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
 //                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
     int count = 0;
-    int width = mag.cols;
-    int height = mag.rows;
+    int width = circle_runtime_param.mag.cols;
+    int height = circle_runtime_param.mag.rows;
 //    std::cout << "\nis it a circle? " << std::endl;
     for (int i = -180; i < 180; i += 1) {
         double angle = 3.14159265f * i / 180;
@@ -387,8 +399,8 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *s
         short sdxv, sdyv;
         if (y0 < 0 || x0 < 0 || y0 >= height || x0 >= width)
             continue;
-        sdxv = dx.at<short>(y0, x0);
-        sdyv = dy.at<short>(y0, x0);
+        sdxv = circle_runtime_param.sdx.at<short>(y0, x0);
+        sdyv = circle_runtime_param.sdy.at<short>(y0, x0);
         double radial_direction = atan2f(sdyv, sdxv);
         double radial_direction1 = atan2f(-sdyv, -sdxv);
 

@@ -7,6 +7,7 @@
 
 
 #include <opencv2/core/types.hpp>
+#include <opencv2/core/mat.hpp>
 
 using UINT16 = unsigned short;
 using INT8 = signed char;
@@ -25,6 +26,19 @@ typedef struct Region{
     cv::Point2f  center;
     int radius;
 }Region;
+
+typedef struct _CIRCLE_RUNTIME_PARAM {
+    cv::Mat img_data;
+    cv::Mat img_gray;
+    cv::Mat dist;
+    cv::Mat sdx;
+    cv::Mat sdy;
+    cv::Mat mag;
+    cv::Mat edge;
+    cv::Mat h_acc;
+    cv::Mat coins;
+    Region region;
+} Circle_runtime_param;
 
 typedef struct KOYO_TOOL_CIRCLE_PARAMETER_
 {
