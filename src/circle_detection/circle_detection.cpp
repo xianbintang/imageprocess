@@ -46,42 +46,34 @@ static bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_
 }
 
 /* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
-static void remove_duplicates(std::vector<Circle> &circles, int num)
+static void remove_duplicates(std::vector<Circle> &circles)
 {
-    for (int i = 0; i < num; ++i) {
-        for (int j = i + 1; j < num; ++j) {
-            if (circles[i].radius == 0)
-                continue;
-            int x0, y0, r0, x1, y1, r1;
-            double s0, s1;
-            x0 = circles[i].center.x;
-            y0 = circles[i].center.y;
-            x1 = circles[j].center.x;
-            y1 = circles[j].center.y;
-
-            r0 = circles[i].radius;
-            r1 = circles[j].radius;
-
-            s0 = circles[i].score;
-            s1 = circles[j].score;
+    for (auto iter = circles.begin(); iter != circles.end(); ++iter) {
+        if(iter->radius == 0)
+            continue;
+        int x0 = iter->center.x, y0 = iter->center.y, r0 = iter->radius;
+        double s0 = iter->score;
+        for (auto next = iter + 1; next != circles.end(); ++next) {
+            int x1 = next->center.x, y1 = next->center.y, r1 = next->radius;
+            double s1 = next->score;
             if ((abs(x0 - x1) < 8 && abs(y0 - y1) < 8) && abs(r0 - r1) < 8) {
                 if (s0 > s1) {
-                    circles[j].center.x = 0;
-                    circles[j].center.y = 0;
-                    circles[j].radius = 0;
-                    circles[j].score = 0;
+                    next->center.x = 0;
+                    next->center.y = 0;
+                    next->radius = 0;
+                    next->score = 0;
                 } else {
-                    circles[i].center.x = 0;
-                    circles[i].center.y = 0;
-                    circles[i].radius = 0;
-                    circles[i].score = 0;
+                    iter->center.x = 0;
+                    iter->center.y = 0;
+                    iter->radius = 0;
+                    iter->score = 0;
                 }
             }
         }
     }
 }
 
-static void sobel(Circle_runtime_param &circle_runtime_param)
+static void prepare_data(Circle_runtime_param &circle_runtime_param)
 {
     short acc_dx = 0, acc_dy = 0;         //accumulators
 //    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
@@ -222,12 +214,9 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
     TimeTracker t3;
     t3.start();
     std::cout << "candidates: " << numof_candidates << std::endl;
-    for (int i = 0; i < numof_candidates; ++i) {
+//    for (int i = 0; i < numof_candidates; ++i) {
 //        std::cout << "candidiates " << i << ": " << candidates[i][0] << " " << candidates[i][1] << " " << candidates[i][2] << std::endl;
-    }
-//    for(int y0 = 0; y0 < HEIGHT; y0++) {
-//        for(int x0 = 0; x0 < WIDTH; x0++) {
-//            for(int r = minRadius; r < maxRadius; r++) {
+//    }
     for (int k = 0; k < numof_candidates; ++k) {
         int y0 = candidates[k][0];
         int x0 = candidates[k][1];
@@ -263,11 +252,7 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
         }
     }
 
-//    bestCircles[0].x = 146;
-//    bestCircles[0].y = 151;
-//    bestCircles[0].z = 118;
     std::cout << "number of best circles" << number_of_best_cirles << std::endl;
-    std::cout << bestCircles[0] << std::endl;
 
     t3.stop();
     std::cout << "duration t3: " << t3.duration() << std::endl;
@@ -336,19 +321,17 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 #if 1
     circle_runtime_param.mag.create(image.rows, image.cols, CV_8UC1);
     circle_runtime_param.ang.create(image.rows, image.cols, CV_32FC1);
-//    circle_runtime_param.edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
     circle_runtime_param.img_gray = image;
 #endif
     TimeTracker tt;
     tt.start();
 //    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
 //    sobel(img_grey, dx, dy, mag, ang);
-    sobel(circle_runtime_param);
+    prepare_data(circle_runtime_param);
 //    GaussianBlur(img_grey, img_grey, Size(5, 5), 2, 2);
 //    Canny(img_grey, edge, 30, 170, 3);
 //    imshow("edge", edge);
 
-    //normalize arrays with max and min values of 255 and 0
     int width = image.cols;
     int height = image.rows;
     tt.stop();
@@ -359,18 +342,12 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     int step = width / 30;
 //    int step = 10;
 
-//    Circle circles[20];
-//    Circle total_circles[100];
-
     std::vector<Circle> total_circles;
-    Region region;
 
+    circle_runtime_param.region.center.x = width / 2;
+    circle_runtime_param.region.center.y = height / 2;
+    circle_runtime_param.region.radius = height / 2.5;
 
-    region.center.x = width / 2;
-    region.center.y = height / 2;
-    region.radius = height / 2.5;
-
-    circle_runtime_param.region = region;
 
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += 20) {
@@ -381,11 +358,11 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
             num_total_circles++;
         }
     }
-    int j = 0;
-    remove_duplicates(total_circles, num_total_circles);
+
+    remove_duplicates(total_circles);
     tt.stop();
-    std::cout << "time: " << tt.duration() << std::endl;
-    tt.start();
+
+    // 显示效果用的，实际上处理过程在remove_duplicates就已经完成了
     for(int i = 0; i < num_total_circles; i++) {
         int lineThickness = 2;
         int lineType = 10;
@@ -398,13 +375,8 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
         if (radius != 0) {
             circle(image, center, radius - 1, Scalar(255, 255, 255), lineThickness, lineType, shift);
             std::cout << "center: " << center <<  "radius: " << radius << " count: " << "score: " << score << std::endl;
-            j++;
         }
     }
-    std::cout << "valid circle: " << j << std::endl;
-    tt.stop();
-    std::cout << "validate time: " << tt.duration() << std::endl;
-
     imshow( "gray", image);
 
     cvWaitKey(-1);
