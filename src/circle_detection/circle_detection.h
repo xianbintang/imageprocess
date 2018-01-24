@@ -28,15 +28,11 @@ typedef struct Region{
 }Region;
 
 typedef struct _CIRCLE_RUNTIME_PARAM {
-    cv::Mat img_data;
     cv::Mat img_gray;
-    cv::Mat dist;
+    cv::Mat ang;
     cv::Mat sdx;
     cv::Mat sdy;
     cv::Mat mag;
-    cv::Mat edge;
-    cv::Mat h_acc;
-    cv::Mat coins;
     Region region;
 } Circle_runtime_param;
 

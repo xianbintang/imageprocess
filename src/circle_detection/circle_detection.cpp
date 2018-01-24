@@ -10,13 +10,78 @@
 
 using namespace cv;
 
-//bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
-void remove_duplicates(std::vector<Circle> &circles, int num);
-bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_param, double *score);
-//void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region);
-void hough(Circle_runtime_param &circle_runtime_param, double threshold, int minRadius, int maxRadius, double distance, std::vector<Circle> &circles, int *num_circles);
+/* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
+static bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_param, double *score)
+{
+//    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
+//                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
+//                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
+    int count = 0;
+    int width = circle_runtime_param.mag.cols;
+    int height = circle_runtime_param.mag.rows;
+//    std::cout << "\nis it a circle? " << std::endl;
+    for (int i = -180; i < 180; i += 1) {
+        double angle = 3.14159265f * i / 180;
+        int x0 = (int)round(p.x + radius * cos(angle));
+        int y0 = (int)round(p.y + radius * sin(angle));
+        short sdxv, sdyv;
+        if (y0 < 0 || x0 < 0 || y0 >= height || x0 >= width)
+            continue;
+        sdxv = circle_runtime_param.sdx.at<short>(y0, x0);
+        sdyv = circle_runtime_param.sdy.at<short>(y0, x0);
+        double radial_direction = atan2f(sdyv, sdxv);
+        double radial_direction1 = atan2f(-sdyv, -sdxv);
 
-void sobel(Circle_runtime_param &circle_runtime_param)
+//        printf("%lf %lf \n", angle, radial_direction);
+        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52, 角度如果小的话不能检测出不规整的圆 */
+        if (fabs(angle - radial_direction) < 0.26 || fabs(angle - radial_direction1) < 0.26) {
+            count++;
+        }
+    }
+    *score = 1.0 * count / 360;
+    /* 拟合60%的点 */
+    /* 至少拟合一半的点数 */
+    std::cout << "count " << count << std::endl;
+    return count > 216;
+}
+
+/* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
+static void remove_duplicates(std::vector<Circle> &circles, int num)
+{
+    for (int i = 0; i < num; ++i) {
+        for (int j = i + 1; j < num; ++j) {
+            if (circles[i].radius == 0)
+                continue;
+            int x0, y0, r0, x1, y1, r1;
+            double s0, s1;
+            x0 = circles[i].center.x;
+            y0 = circles[i].center.y;
+            x1 = circles[j].center.x;
+            y1 = circles[j].center.y;
+
+            r0 = circles[i].radius;
+            r1 = circles[j].radius;
+
+            s0 = circles[i].score;
+            s1 = circles[j].score;
+            if ((abs(x0 - x1) < 8 && abs(y0 - y1) < 8) && abs(r0 - r1) < 8) {
+                if (s0 > s1) {
+                    circles[j].center.x = 0;
+                    circles[j].center.y = 0;
+                    circles[j].radius = 0;
+                    circles[j].score = 0;
+                } else {
+                    circles[i].center.x = 0;
+                    circles[i].center.y = 0;
+                    circles[i].radius = 0;
+                    circles[i].score = 0;
+                }
+            }
+        }
+    }
+}
+
+static void sobel(Circle_runtime_param &circle_runtime_param)
 {
     short acc_dx = 0, acc_dy = 0;         //accumulators
 //    float k1 [] = {-1,-2,-1,0,0,0,1,2,1}; //{-2,-4,-2,0,0,0,2,4,2};//{-1,-2,-1,0,0,0,1,2,1};    //sobel kernal dx
@@ -37,7 +102,7 @@ void sobel(Circle_runtime_param &circle_runtime_param)
             /*
              * TODO dist可以利用查表实现，如果acc_dy和acc_dx能够归一化到8位即可
              * */
-            circle_runtime_param.dist.at<float>(i,j) = atan2f(acc_dy, acc_dx);
+            circle_runtime_param.ang.at<float>(i,j) = atan2f(acc_dy, acc_dx);
             // printf("dist : %f \n", dist.at<float>(i,j) / 3.14159265f * 180 );
         }
     }
@@ -59,10 +124,10 @@ inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r,
 
 
 //void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius, double distance, Mat &h_acc, Mat &coins, std::vector<Circle> &circles, int *num_circles, Region region)
-void hough(Circle_runtime_param &circle_runtime_param, double threshold, int minRadius, int maxRadius, double distance, std::vector<Circle> &circles, int *num_circles)
+static void hough(Circle_runtime_param &circle_runtime_param, double threshold, int minRadius, int maxRadius, double distance, std::vector<Circle> &circles, int *num_circles)
 {
-    Mat img_data = circle_runtime_param.mag, dist = circle_runtime_param.dist, sdx = circle_runtime_param.sdx, sdy = circle_runtime_param.sdy;
-    Mat h_acc = circle_runtime_param.h_acc, coins = circle_runtime_param.coins;
+    Mat img_data = circle_runtime_param.mag, ang= circle_runtime_param.ang, sdx = circle_runtime_param.sdx, sdy = circle_runtime_param.sdy;
+
     Region region = circle_runtime_param.region;
     int radiusRange = maxRadius - minRadius;
     int regionx = region.center.x - region.radius;
@@ -107,7 +172,7 @@ void hough(Circle_runtime_param &circle_runtime_param, double threshold, int min
             if( img_data.at<uchar>(y,x) > 250 )  //threshold image
             {
                 ct++;
-                double theta = dist.at<float>(y,x);
+                double theta = ang.at<float>(y,x);
                 double cos_theta = cos(theta);
                 double sin_theta = sin(theta);
                 for (int r=minRadius; r< maxRadius; r++)
@@ -220,7 +285,7 @@ void hough(Circle_runtime_param &circle_runtime_param, double threshold, int min
         Point2f center(xCoord, yCoord);
         double score;
 //        std::cout << H[yCoord][xCoord][radius] << " radius: " << radius << std::endl;
-//        if (is_circle(Point(xCoord, yCoord), radius, img_data, dist, sdx, sdy, &score)) {
+//        if (is_circle(Point(xCoord, yCoord), radius, img_data, ang, sdx, sdy, &score)) {
         if (is_circle(Point(xCoord, yCoord), radius, circle_runtime_param, &score)) {
             Circle circle;
             circle.center = center;
@@ -263,40 +328,34 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 
     Circle_runtime_param circle_runtime_param;
 
-    Mat image, img_grey, img_grey1;     //input mat
-    Mat dx,dy,mag,dist, edge;
-    Mat dx_out, dy_out, dis_out;  //final output mat
-    Mat h_acc, h_out;       //hough space matricies
+    Mat dx,dy,mag,ang;
+//    Mat dx_out, dy_out, dis_out;  //final output mat
 
-    image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
-    img_grey = image;
+    auto image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
 
 #if 1
-    circle_runtime_param.mag.create(img_grey.rows, img_grey.cols, CV_8UC1);
-    circle_runtime_param.dist.create(img_grey.rows, img_grey.cols, CV_32FC1);
-    circle_runtime_param.edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
-    circle_runtime_param.h_acc.create(mag.rows, mag.cols, CV_8UC1);
-    circle_runtime_param.img_gray = img_grey;
+    circle_runtime_param.mag.create(image.rows, image.cols, CV_8UC1);
+    circle_runtime_param.ang.create(image.rows, image.cols, CV_32FC1);
+//    circle_runtime_param.edge.create(img_grey.rows, img_grey.cols, CV_8UC1);
+    circle_runtime_param.img_gray = image;
 #endif
     TimeTracker tt;
     tt.start();
 //    GaussianBlur(img_grey, img_grey, Size(3, 3), 2, 2);
-//    sobel(img_grey, dx, dy, mag, dist);
+//    sobel(img_grey, dx, dy, mag, ang);
     sobel(circle_runtime_param);
 //    GaussianBlur(img_grey, img_grey, Size(5, 5), 2, 2);
 //    Canny(img_grey, edge, 30, 170, 3);
 //    imshow("edge", edge);
 
     //normalize arrays with max and min values of 255 and 0
-    int width = img_grey.cols;
-    int height = img_grey.rows;
+    int width = image.cols;
+    int height = image.rows;
     tt.stop();
     std::cout << "half: " << tt.duration() << std::endl;
     tt.start();
     /* 需要遍历所有可能的半径组合来检测出所有的圆，这样才能检测出同心圆 */
     /* 半径最大为1/2 * width, 最小为10像素， step为10像素 */
-//    hough(mag, dist, dx, dy, 5, 10, 150, 20, h_acc, image);
-//    hough(mag, dist, dx, dy, 10, 10, 75, 20, h_acc, image);
     int step = width / 30;
 //    int step = 10;
 
@@ -305,9 +364,6 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 
     std::vector<Circle> total_circles;
     Region region;
-//    region.center.x = 1.0 / 2 * image.cols;
-//    region.center.y = 1.0 / 2 * image.rows;
-//    region.radius = 1.0 / 2 * image.cols;
 
 
     region.center.x = width / 2;
@@ -315,16 +371,11 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     region.radius = height / 2.5;
 
     circle_runtime_param.region = region;
+
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += 20) {
         std::vector<Circle> circles;
         hough(circle_runtime_param, 10, r - 10, r + 10, 20, circles, &num_circles);
-        for (int i = 0; i < num_circles; ++i) {
-//            total_circles[num_total_circles++] = circles[i];
-//            total_circles[num_total_circles++] = circles[i];
-//            total_circles.push_back(circles[i]);
-//            num_total_circles++;
-        }
         for (auto iter = circles.cbegin(); iter != circles.cend(); ++iter) {
             total_circles.push_back(*iter);
             num_total_circles++;
@@ -354,110 +405,10 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     tt.stop();
     std::cout << "validate time: " << tt.duration() << std::endl;
 
-//    hough(mag, dist, 10, 20, 28, 20, h_acc, image);
+    imshow( "gray", image);
 
-    // normalize(h_acc, h_out, 0, 255, NORM_MINMAX, -1, Mat());
-    // threshold(h_acc,h_out, 200,255,THRESH_TOZERO);
-
-    normalize(dx, dx_out, 0, 255, NORM_MINMAX, -1, Mat());
-    normalize(dy, dy_out, 0, 255, NORM_MINMAX, -1, Mat());
-    normalize(dist, dis_out, 0, 255, NORM_MINMAX, -1, Mat());
-    //save images
-    Mat dis_show;
-    Mat dx_show, dy_show;
-    convertScaleAbs(dis_out, dis_show);
-    convertScaleAbs(dx_out, dx_show);
-    convertScaleAbs(dy_out, dy_show);
-    imshow( "gray", img_grey);
-//    imshow( "dx.jpg", dx_show);
-//    imshow( "dy.jpg", dy_show);
-//    imshow( "mag.jpg", mag );
-//    imshow( "dist.jpg", dis_show);
-//    imshow( "h_space.jpg", h_acc);
-//
-//    imshow("result.png",image);
     cvWaitKey(-1);
     return 0;
 }
 
-
-/* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
-//bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
-bool is_circle(Point p, int radius, Circle_runtime_param &circle_runtime_param, double *score)
-{
-//    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
-//                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
-//                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
-    int count = 0;
-    int width = circle_runtime_param.mag.cols;
-    int height = circle_runtime_param.mag.rows;
-//    std::cout << "\nis it a circle? " << std::endl;
-    for (int i = -180; i < 180; i += 1) {
-        double angle = 3.14159265f * i / 180;
-        int x0 = (int)round(p.x + radius * cos(angle));
-        int y0 = (int)round(p.y + radius * sin(angle));
-        short sdxv, sdyv;
-        if (y0 < 0 || x0 < 0 || y0 >= height || x0 >= width)
-            continue;
-        sdxv = circle_runtime_param.sdx.at<short>(y0, x0);
-        sdyv = circle_runtime_param.sdy.at<short>(y0, x0);
-        double radial_direction = atan2f(sdyv, sdxv);
-        double radial_direction1 = atan2f(-sdyv, -sdxv);
-
-//        printf("%lf %lf \n", angle, radial_direction);
-        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52, 角度如果小的话不能检测出不规整的圆 */
-        if (fabs(angle - radial_direction) < 0.26 || fabs(angle - radial_direction1) < 0.26) {
-            count++;
-        }
-    }
-    *score = 1.0 * count / 360;
-    /* 拟合60%的点 */
-    /* 至少拟合一半的点数 */
-    std::cout << "count " << count << std::endl;
-    return count > 216;
-}
-
-/* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
-void remove_duplicates(std::vector<Circle> &circles, int num)
-{
-    for (int i = 0; i < num; ++i) {
-        for (int j = i + 1; j < num; ++j) {
-            if (circles[i].radius == 0)
-                continue;
-            int x0, y0, r0, x1, y1, r1;
-            double s0, s1;
-            x0 = circles[i].center.x;
-            y0 = circles[i].center.y;
-            x1 = circles[j].center.x;
-            y1 = circles[j].center.y;
-
-            r0 = circles[i].radius;
-            r1 = circles[j].radius;
-
-            s0 = circles[i].score;
-            s1 = circles[j].score;
-            if ((abs(x0 - x1) < 8 && abs(y0 - y1) < 8) && abs(r0 - r1) < 8) {
-                if (s0 > s1) {
-                    circles[j].center.x = 0;
-                    circles[j].center.y = 0;
-                    circles[j].radius = 0;
-                    circles[j].score = 0;
-                } else {
-                    circles[i].center.x = 0;
-                    circles[i].center.y = 0;
-                    circles[i].radius = 0;
-                    circles[i].score = 0;
-                }
-            }
-        }
-    }
-}
-
-/*
- * todo 已经实现了
- * */
-void do_detect(Mat &img_data,  Mat &dist, Mat &sdx, Mat &sdy, Region region, int target_radius, int low_threshold, int high_threshold)
-{
-
-}
 

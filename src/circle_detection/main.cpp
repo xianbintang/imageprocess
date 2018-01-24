@@ -12,8 +12,6 @@
 int main( int argc, char** argv )
 {
 
-    char* imageName = argv[1];
-
     std::string filename(argv[1]);
     cv::Mat template_image;
     UINT8 *buf = nullptr;
