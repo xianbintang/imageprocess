@@ -1,5 +1,8 @@
+//
+// Created by xianb on 2017/7/18.
+//
+
 #include "TimeTracker.h"
-#include "circle_detection.h"
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -9,7 +12,15 @@
 #include <basetsd.h>
 
 using namespace cv;
-
+typedef struct Circle {
+    Point2f  center;
+    int radius;
+    double score;
+}Circle ;
+typedef struct Region{
+    Point2f  center;
+    int radius;
+}Region;
 bool is_circle(Point p, int radius, Mat mag, Mat dist, Mat dx, Mat dy, double *score);
 void remove_duplicates(Circle circles[], int num);
 void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int minRadius, int maxRadius,double distance, Mat &h_acc, Mat &coins, Circle circles[], int *num_circles, Region region);
@@ -248,16 +259,28 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
     return gray;
 }
 
-int circle_detection_config(const UINT8 *yuv, Circle circles1[])
+
+int main( int argc, char** argv )
 {
-    // 获取灰度图
+
+    char* imageName = argv[1];
 
     Mat image, img_grey, img_grey1;     //input mat
     Mat dx,dy,mag,dist, edge;
     Mat dx_out, dy_out, dis_out;  //final output mat
     Mat h_acc, h_out;       //hough space matricies
 
-    image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+    std::string filename(argv[1]);
+    if(filename.substr(filename.size() - 3, 3) == "yuv") {
+        UINT8 *buf = nullptr;
+        FILE *yuv_file = fopen(filename.c_str(), "rb+");
+        buf = new UINT8[640* 480];
+        fread(buf, 640* 480, 1, yuv_file);
+        image= get_y_from_yuv(buf, 640, 480);
+    } else {
+        image = cv::imread(argv[1], 0);
+    }
+
     img_grey = image;
 
     dx.create(img_grey.rows, img_grey.cols, CV_16SC1);
@@ -296,10 +319,22 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
 //    region.radius = 1.0 / 2 * image.cols;
 
 
+#if 1
+    region.center.x = 247;
+    region.center.y = 243;
+    region.radius = 150;
+#endif
+#if 0
+    region.center.x = 320;
+    region.center.y = 230;
+    region.radius = 80;
+#endif
+
+#if 1
     region.center.x = width / 2;
     region.center.y = height / 2;
     region.radius = height / 2.5;
-
+#endif
     int num_circles = 0, num_total_circles = 0;
     for (int r = 10; r < (int)(1.0 / 2 * width - 10); r += 20) {
         hough(mag, dist, dx, dy, 10, r - 10, r + 10, 20, h_acc, image, circles, &num_circles, region);
@@ -356,7 +391,6 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     cvWaitKey(-1);
     return 0;
 }
-
 
 /* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
 bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
@@ -436,4 +470,3 @@ void do_detect(Mat &img_data,  Mat &dist, Mat &sdx, Mat &sdy, Region region, int
 {
 
 }
-

@@ -8,11 +8,18 @@
 #include <opencv/cv.hpp>
 #include <cmath>
 #include <iostream>
+#include <basetsd.h>
 
 typedef struct _LINE_STRUCT_ {
     float k;
     float b;
 } line_struct;
+
+typedef struct _CIRCLE_STRUCT_ {
+    cv::Point center;
+    UINT16 radius;
+} circle_struct;
+
 
 line_struct get_line_equation(cv::Point p1, cv::Point p2) {
     line_struct line;
@@ -56,6 +63,17 @@ void get_intersections(line_struct lines[], unsigned short intersection[][2], cv
 
 }
 
+void get_intersections_circle(circle_struct circle, unsigned short intersection[][2], cv::Point minPoint, cv::Point maxPoint)
+{
+    UINT16 radius = circle.radius;
+    UINT16 cenx = circle.center.x;
+    UINT16 ceny = circle.center.y;
+    for (int i = minPoint.y; i < maxPoint.y; ++i) {
+        int x = sqrt(radius * radius - (ceny - i) * (ceny - i));
+        intersection[i][0] = cenx - x;
+        intersection[i][1] = cenx + x;
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -88,13 +106,23 @@ int main(int argc, char **argv)
     cv::Point minPoint(10,10), maxPoint(100,100);
 #endif
 
-    line_struct lines[4];
-    lines[0] = get_line_equation(p0, p1);
-    lines[1] = get_line_equation(p1, p2);
-    lines[2] = get_line_equation(p2, p3);
-    lines[3] = get_line_equation(p3, p0);
+//    line_struct lines[4];
+//    lines[0] = get_line_equation(p0, p1);
+//    lines[1] = get_line_equation(p1, p2);
+//    lines[2] = get_line_equation(p2, p3);
+//    lines[3] = get_line_equation(p3, p0);
+//
+//    get_intersections(lines, intersection, minPoint, maxPoint);
+    circle_struct circleStruct;
+    circleStruct.radius = 100;
+    circleStruct.center.x = 200;
+    circleStruct.center.y = 200;
+    maxPoint.x = 300;
+    maxPoint.y = 300;
 
-    get_intersections(lines, intersection, minPoint, maxPoint);
+    minPoint.x = 100;
+    minPoint.y = 100;
+    get_intersections_circle(circleStruct, intersection, minPoint, maxPoint);
     auto img = cv::imread(argv[1], 0);
     for (int i = 0; i < 480; ++i) {
         int startx = intersection[i][0];
@@ -108,7 +136,7 @@ int main(int argc, char **argv)
             cv::circle(img, cv::Point(j, i), 1, cv::Scalar(255,255,255), 1);
         }
     }
-//    cv::imshow("haha", img);
-//    cv::waitKey(0);
+    cv::imshow("haha", img);
+    cv::waitKey(0);
     return 0;
 }

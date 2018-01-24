@@ -44,7 +44,7 @@ void displayTextImage(const char *path, int width, int height)
         for (int j = 0; j < width; ++j) {
             fin >> num;
 //            std::cout << num << std::endl;
-            prow[j] = num;
+            prow[j] = num * 255;
         }
     }
     cvShowImage("img", img);
