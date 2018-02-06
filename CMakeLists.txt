@@ -116,3 +116,9 @@ target_link_libraries(testsobel ${OpenCV_LIBS})
 
 add_executable(circle_detection_config src/circle_detection/circle_detection.cpp src/circle_detection/main.cpp)
 target_link_libraries(circle_detection_config ${OpenCV_LIBS})
+
+add_executable(testNewWidth test/testNewWidth.cpp)
+target_link_libraries(testNewWidth ${OpenCV_LIBS})
+
+add_executable(getRgb src/color_detection/getRGB.cpp)
+target_link_libraries(getRgb ${OpenCV_LIBS})

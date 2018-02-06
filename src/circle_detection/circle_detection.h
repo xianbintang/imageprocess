@@ -13,7 +13,6 @@ using UINT16 = unsigned short;
 using INT8 = signed char;
 using UINT8 = unsigned char;
 using UINT32 = unsigned int;
-const int MIN_CONTOUR_PYRA = 80;
 const int WIDTH = 640;
 const int HEIGHT = 480;
 
@@ -22,6 +21,13 @@ typedef struct Circle {
     int radius;
     double score;
 }Circle ;
+
+typedef struct _RESULT_CIRCLE_{
+    unsigned short x;
+    unsigned short y;
+    int radius;
+}Result_Circle;
+
 typedef struct Region{
     cv::Point2f  center;
     int radius;
@@ -36,6 +42,7 @@ typedef struct _CIRCLE_RUNTIME_PARAM {
     Region region;
 } Circle_runtime_param;
 
+#if 0
 typedef struct KOYO_TOOL_CIRCLE_PARAMETER_
 {
     INT8   tool_name[32];         //工具名称
@@ -50,8 +57,9 @@ typedef struct KOYO_TOOL_CIRCLE_PARAMETER_
     UINT16 top_threshold;
     UINT16 bot_threshold;
 } Koyo_Tool_Circle_Parameter;
+#endif
 
 
-int circle_detection_config(const UINT8 *yuv, Circle circles[]);
+int circle_detection_config(const UINT8 *yuv, std::vector<Result_Circle> &circles);
 
 #endif //KOYO_CIRCLE_DETECTION_H

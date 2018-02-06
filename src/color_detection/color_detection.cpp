@@ -29,14 +29,44 @@ int main( int argc, char** argv )
     cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
     cvCreateTrackbar("HighV", "Control", &iHighV, 255);
 
+#if 0
+    Mat imgOriginal = imread(argv[1], 1);
+    Mat imgHSV, imageYUV;
+    vector<Mat> hsvSplit;
+
+    cvtColor(imgOriginal, imageYUV, CV_BGR2YUV);
+    cvtColor(imageYUV, imgHSV, CV_YUV); //Convert the captured frame from BGR to HSV
+    cv::Mat mv[3];
+    split(imgHSV, mv);
+#endif
+
+    std::string filename(argv[1]);
+    unsigned char *buf = nullptr;
+    if(filename.substr(filename.size() - 3, 3) == "yuv") {
+        FILE *yuv_file = fopen(filename.c_str(), "rb+");
+
+        buf = new unsigned char[640 * 480 + 320 * 240 * 2];
+        fread(buf, 640* 480 + 320 * 240 * 2, 1, yuv_file);
+    }
+
+    Mat mYUV(480+ 480/2, 640, CV_8UC1, (void*) buf);
+    Mat mRGB(480, 640, CV_8UC3);
+    cvtColor(mYUV, mRGB, CV_YUV420p2BGR, 3);
+
+    //因为我们读取的是彩色图，直方图均衡化需要在HSV空间做
+
+    imshow("rgb", mRGB); //show the thresholded image
+    cv::waitKey(-1);
+#if 0
+
     while (true)
     {
-        Mat imgOriginal = imread("images/rainbow.jpg", 1);
+        Mat imgOriginal = imread(argv[1], 1);
 
 
         Mat imgHSV;
         vector<Mat> hsvSplit;
-        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+        cvtColor(imgOriginal, imgHSV, COLOR_RGB2HSV); //Convert the captured frame from BGR to HSV
 
         //因为我们读取的是彩色图，直方图均衡化需要在HSV空间做
 
@@ -60,6 +90,7 @@ int main( int argc, char** argv )
         if(key == 27)
             break;
     }
+#endif
 
     return 0;
 

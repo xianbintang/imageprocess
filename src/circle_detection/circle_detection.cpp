@@ -71,6 +71,13 @@ static void remove_duplicates(std::vector<Circle> &circles)
             }
         }
     }
+    for(auto it=circles.begin(); it!=circles.end(); ) {
+        if (it->radius == 0) {
+            it = circles.erase(it); //不能写成arr.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 static void prepare_data(Circle_runtime_param &circle_runtime_param)
@@ -103,7 +110,7 @@ static void prepare_data(Circle_runtime_param &circle_runtime_param)
 
 inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r, int candidates[][3], int *numof_candidates, int threshold, int minRadius)
 {
-    if (x>0 && x<width && y> 0 && y<height) {
+    if (x>0 && x<width && y> 0 && y<height && r > 0) {
         H[y][x][r]++;
         if (H[y][x][r] > threshold) {
             candidates[*numof_candidates][0] = y;
@@ -112,6 +119,7 @@ inline void inc_if_inside(int *** H, int x, int y, int height, int width, int r,
             *numof_candidates = *numof_candidates + 1;
         }
     }
+//    std::cout << "num of candididates " << *numof_candidates << std::endl;
 }
 
 
@@ -148,14 +156,15 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
         }
     }
 
-    int candidates[1000][3];
+    int candidates[10000][3];
     int numof_candidates = 0;
-    memset(candidates, 0, sizeof(int) * 1000 * 3);
+    memset(candidates, 0, sizeof(int) * 10000 * 3);
     TimeTracker t1;
     t1.start();
     TimeTracker t2;
     t2.start();
     int ct = 0, ct2 = 0;
+    std::cout << "before loop" << std::endl;
     for(int y=regiony; y > 0 && y < img_data.rows && y<region_height + regiony; y++)
     {
         for(int x=regionx; x > 0 && x<img_data.cols && x < region_width + regionx; x++)
@@ -176,8 +185,9 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
                     int x1 = (x - r_cos_theta);
                     int y0 = (y + r_sin_theta);
                     int y1 = (y - r_sin_theta);
-
-//                    printf("x0: %d, x1: %d, y0: %d, y1: %d\n", x0, x1, y0, y1);
+                 //   printf("next\n");
+                 //   printf("x0: %d, x1: %d, y0: %d, y1: %d\n", x0, x1, y0, y1);
+                  //  printf("next\n");
                     inc_if_inside(H, x0 - regionx, y0 - regiony, HEIGHT, WIDTH, r - minRadius, candidates, &numof_candidates, threshold, minRadius);
                     // inc_if_inside(H,x0,y1,HEIGHT, WIDTH, r);
                     // inc_if_inside(H,x1,y0,HEIGHT, WIDTH, r);
@@ -186,6 +196,7 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
             }
         }
     }
+    std::cout << "after loop" << std::endl;
     std::cout << "ct: " << ct << "ct2: " << ct2 << std::endl;
 //    std::out << " numof candidates: " <<  numof_candidates << std::endl;
     t2.stop();
@@ -307,7 +318,7 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
     return gray;
 }
 
-int circle_detection_config(const UINT8 *yuv, Circle circles1[])
+int circle_detection_config(const UINT8 *yuv, std::vector<Result_Circle> &circles1)
 {
     // 获取灰度图
 
@@ -360,9 +371,37 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
     }
 
     remove_duplicates(total_circles);
-    tt.stop();
+    for (auto iter = total_circles.begin(); iter != total_circles.end(); ++iter) {
+        int lineThickness = 2;
+        int lineType = 10;
+        int shift = 0;
+        int xCoord = iter->center.x;
+        int yCoord = iter->center.y;
+        int radius = iter->radius;
+        Result_Circle rc{xCoord, yCoord, radius};
+        circles1.push_back(rc);
+    }
 
+#if 0
+    for (auto iter = circles1.begin(); iter != circles1.end(); ++iter) {
+        int lineThickness = 10;
+        int lineType = 10;
+        int shift = 0;
+        int xCoord = iter->x;
+        int yCoord = iter->y;
+        int radius = iter->radius;
+        Point2f center(xCoord, yCoord);
+        if (radius != 0) {
+            circle(image, center, radius - 1, Scalar(255, 255, 255), lineThickness, lineType, shift);
+            std::cout << "center: " << center <<  "radius: " << radius << " count: " << std::endl;
+        }
+    }
+
+    imshow( "gray", image);
+    cvWaitKey(-1);
+#endif
     // 显示效果用的，实际上处理过程在remove_duplicates就已经完成了
+#if 0
     for(int i = 0; i < num_total_circles; i++) {
         int lineThickness = 2;
         int lineType = 10;
@@ -373,13 +412,11 @@ int circle_detection_config(const UINT8 *yuv, Circle circles1[])
         Point2f center(xCoord, yCoord);
         double score = total_circles[i].score;
         if (radius != 0) {
-            circle(image, center, radius - 1, Scalar(255, 255, 255), lineThickness, lineType, shift);
+//            circle(image, center, radius - 1, Scalar(255, 255, 255), lineThickness, lineType, shift);
             std::cout << "center: " << center <<  "radius: " << radius << " count: " << "score: " << score << std::endl;
         }
     }
-    imshow( "gray", image);
-
-    cvWaitKey(-1);
+#endif
     return 0;
 }
 
