@@ -8,14 +8,14 @@ set(CMAKE_BUILD_TYPE "Debug")
 
 
 if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
-    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -Wno-unused-variable ")
+    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -O3 ")
     add_definitions(-DRUN_PC)
     add_definitions(-DDEBUG_PRINT)
     add_definitions(-D_DEBUG_LEVEL_HIGH_)
-    #    add_definitions(-DNDEBUG)
+        add_definitions(-DNDEBUG)
 else( CMAKE_BUILD_TYPE STREQUAL "Release" )
 #    set(CMAKE_BUILD_TYPE "Release")
-#    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -O3 -Wall -Wno-unused-variable")
+#    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -O3 -Wall")
 #    add_definitions(-DRUN_PC)
 #    add_definitions(-DNDEBUG)
 #    add_definitions(-DDEBUG_PRINT)
@@ -77,7 +77,7 @@ target_link_libraries(testTemplateMatch ${OpenCV_LIBS})
 add_executable(colorDetection src/color_detection/color_detection.cpp)
 target_link_libraries(colorDetection ${OpenCV_LIBS})
 
-add_executable(circle_detection src/circle_detection/circle_detection.cpp)
+add_executable(circle_detection src/circle_detection/circle_detection_original.cpp)
 target_link_libraries(circle_detection ${OpenCV_LIBS})
 
 add_executable(getPoint test/getPoint.cpp)
@@ -107,3 +107,18 @@ target_link_libraries(myFilter ${OpenCV_LIBS})
 
 add_executable(cydpc test/cydpc/contour_detection.h test/cydpc/contour_detection.cpp test/cydpc/TimeTracker.h test/cydpc/main.cpp)
 target_link_libraries(cydpc ${OpenCV_LIBS})
+
+add_executable(testinrect test/color_test/test_inrect.cpp)
+target_link_libraries(testinrect ${OpenCV_LIBS})
+
+add_executable(testsobel test/SobelTest.cpp)
+target_link_libraries(testsobel ${OpenCV_LIBS})
+
+add_executable(circle_detection_config src/circle_detection/circle_detection.cpp src/circle_detection/main.cpp)
+target_link_libraries(circle_detection_config ${OpenCV_LIBS})
+
+add_executable(testNewWidth test/testNewWidth.cpp)
+target_link_libraries(testNewWidth ${OpenCV_LIBS})
+
+add_executable(getRgb src/color_detection/getRGB.cpp)
+target_link_libraries(getRgb ${OpenCV_LIBS})

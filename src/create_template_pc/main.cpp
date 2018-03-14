@@ -50,6 +50,8 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 
 //#define _CPU_TEST_
 #define _MILK_
+#define _CPU_TEST45_
+//#define _KOYO_TEST_
 
 #ifdef _VI42_
     koyo_tool_contour_parameter.detect_rect_x0 = 279;
@@ -314,6 +316,19 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     }
 //     在这里设置bitmap, 这里的bitmap和客户端传来的有区别了，获取到客户端的后就不用原来的了。
     koyo_tool_contour_parameter.bitmaps = bitmap;
+    koyo_tool_contour_parameter.detect_region_type = 1;
+#if 0
+
+    koyo_tool_contour_parameter.detect_circ_x = 280;
+    koyo_tool_contour_parameter.detect_circ_y = 250;
+    koyo_tool_contour_parameter.detect_circ_radius = 150;
+    koyo_tool_contour_parameter.detect_region_type = 0;
+
+    koyo_tool_contour_parameter.ext_rect_x = 130;
+    koyo_tool_contour_parameter.ext_rect_y = 100;
+    koyo_tool_contour_parameter.ext_rect_width = 300;
+    koyo_tool_contour_parameter.ext_rect_height = 300;
+#endif
 }
 
 
@@ -339,7 +354,7 @@ int main(int argc, char **argv)
 
     get_contours(buf, contours);
 
-    cv::Mat cleanedImage = cv::imread("data//roi_ext.jpg", 0);
+    cv::Mat cleanedImage = cv::imread("data//bitmap_big.jpg", 0);
     cv::Mat template_roi_ext;
     // todo 换成从bitmap中读取
     // todo 需要删除掉如果是直接从bitmap中取出来的就不做canny了
@@ -352,7 +367,7 @@ int main(int argc, char **argv)
 
     // 返回指向需要被发送的内存缓冲区的指针
     int buf_size = 0;
-    create_template(buf, koyo_tool_contour_parameter, &buf_size);
+    create_template(buf, &koyo_tool_contour_parameter, &buf_size);
 
     return 0;
 }
