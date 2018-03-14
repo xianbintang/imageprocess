@@ -504,6 +504,16 @@ void Dilation(const cv::Mat &src, cv::Mat &dilation_dst, int size )
     dilate( src, dilation_dst, element);
 }
 
+void Erode(const cv::Mat &src, cv::Mat &erode_dst, int size )
+{
+    int dilation_type = cv::MORPH_RECT;
+
+    cv::Mat element = cv::getStructuringElement( dilation_type,
+                                         cv::Size( size, size));
+    ///膨胀操作
+    erode( src, erode_dst, element);
+}
+
 /*
  * rect是相对640*480图片的坐标
  * */
@@ -552,8 +562,10 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
             p.x = j;
             p.y = i;
             // 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
+            double min_dist = (tpl.modelHeight + tpl.modelWidth) / 100.0;
+            min_dist = (min_dist > MIN_DIST ? min_dist : MIN_DIST);
             // todo 这里由于使用了位与操作，所以不用再判断距离了
-            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 200.0)) {
+            if (U8 && dist_to_lines_less_than(rect, p, min_dist)) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
@@ -609,7 +621,7 @@ static void draw_template(cv::Mat src, const TemplateStruct &tpl)
     for (UINT32 i = 0; i < tpl.noOfCordinates; ++i) {
         cv::circle(src, cv::Point(tpl.cordinates[i].x + tpl.centerOfGravity.x, tpl.cordinates[i].y + tpl.centerOfGravity.y), 1, cv::Scalar(255,255,255));
     }
-    cv::imshow("hehe", src);
+    cv::imshow("hehehaha", src);
     cvWaitKey(0);
 }
 
@@ -750,6 +762,8 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
     for (int i = 0; i < MAX_NUM_PYRAMID - 1; ++i) {
         cv::Mat next_level;
         cv::Mat next_level_bmap;
+//        cv::GaussianBlur(pyramid_templates[i], pyramid_templates[i], cv::Size(5,5),3);
+//        cv::GaussianBlur(pyramid_bitmaps[i], pyramid_bitmaps[i], cv::Size(5,5),3);
         cv::pyrDown(pyramid_bitmaps[i], next_level_bmap);
         cv::pyrDown(pyramid_templates[i], next_level);
         pyramid_templates.push_back(next_level);
@@ -766,7 +780,7 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 #endif
     // 只对最底层进行滤波
     cv::Mat after_gaus;
-    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),0);
+    cv::GaussianBlur(pyramid_templates[0], after_gaus, cv::Size(5,5),3);
     pyramid_templates[0] = after_gaus;
 
     // 图像的质心
@@ -914,6 +928,10 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
 {
     // 获取灰度图
     auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+    cv::GaussianBlur(template_image, template_image, cv::Size(5,5),3);
+//    cv::imwrite("data//milkbox_close.jpg", template_image);
+//    cv::imshow("hahaha", template_image);
+//    cv::waitKey(0);
 
     // 设置参数截取模板图片
     cv::Mat template_roi;
@@ -924,7 +942,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter koyo_tool_co
             {koyo_tool_contour_parameter.detect_rect_x3, koyo_tool_contour_parameter.detect_rect_y3},
     };
     // 获取擦除后的轮廓
-#if 0
+#if 1
     cv::Mat template_roi_ext1;
     auto tmp1 = template_image;
     template_roi_ext1 = tmp1(
@@ -990,6 +1008,7 @@ int get_contours(const UINT8 *yuv, UINT8 *contours[3])
 {
 
     auto src = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+//    cv::GaussianBlur(src, src, cv::Size(5,5),3);
     cv::Mat contour_low, contour_medium, contour_high;
     cv::Canny(src, contour_low, 10, 80);
     cv::Canny(src, contour_medium, 30, 150);

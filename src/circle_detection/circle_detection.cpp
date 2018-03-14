@@ -90,9 +90,9 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         }
     }
 
-    int candidates[1000][3];
+    int candidates[50000][3];
     int numof_candidates = 0;
-    memset(candidates, 0, sizeof(int) * 1000 * 3);
+    memset(candidates, 0, sizeof(int) * 50000* 3);
     TimeTracker t1;
     t1.start();
     TimeTracker t2;
@@ -103,7 +103,7 @@ void hough(Mat &img_data, Mat &dist, Mat &sdx, Mat &sdy, double threshold, int m
         for(int x=regionx; x > 0 && x<img_data.cols && x < region_width + regionx; x++)
         {
             // printf("data point : %f\n", img_data.at<float>(y,x));
-            if( img_data.at<uchar>(y,x) > 250 )  //threshold image
+            if( img_data.at<uchar>(y,x) > 180)  //threshold image
             {
 //                ct++;
                 double theta = dist.at<float>(y,x);
@@ -367,7 +367,7 @@ bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *s
     *score = 1.0 * count / 360;
     /* 拟合60%的点 */
     /* 至少拟合一半的点数 */
-    return count > 216;
+    return count > 180;
 }
 
 /* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
