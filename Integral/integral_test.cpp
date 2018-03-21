@@ -169,7 +169,20 @@ cv::Mat computeIntegral(cv::Mat &image)
 
 bool compareSumPattern(cv::Mat &srcPattern, cv::Mat &targetPattern, cv::Point position)
 {
-
+    int ct = 0;
+    int ctnozero = 0;
+    for (int i = 0; i < targetPattern.rows; ++i) {
+        for (int j = 0; j < targetPattern.cols; ++j) {
+            if(targetPattern.at<int>(i, j)) {
+                ctnozero++;
+            }
+            if(targetPattern.at<int>(i, j) && abs(srcPattern.at<int>(i + position.y, j + position.x) - targetPattern.at<int>(i, j)) < 16) {
+                ct++;
+            }
+        }
+    }
+//    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
+    return 1.0 * ct / ctnozero> 0.70;
 }
 int findTargetArea(cv::Mat &src, cv::Mat &target)
 {
@@ -182,15 +195,16 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
     auto tobeSum = getCurrentSum(target, A, D, 0);
 
+    int patternSize = 8;
     // 计算模板的pattern
-    auto templatePattern = CreateIntegralSum(tobe, A, D, 3);
+    auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
     std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
     // 计算图片的pattern
 
     A = Point(0, 0);
     D=  Point(src.cols - 1, src.rows - 1);
-    auto srcPattern = CreateIntegralSum(integ, A, D, 3);
+    auto srcPattern = CreateIntegralSum(integ, A, D, patternSize);
     std::cout << " ct: " << computePointsInt(srcPattern) << std::endl;
 
     std::vector<Point> region;
@@ -200,9 +214,12 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         for (int j = 0; j < src.cols; j += BLOCKW) {
             Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > 1850) {
-                region.push_back(A);
-                ct++;
+            if(sum > 1800 ) {
+                Point pos = Point(j / patternSize, i / patternSize);
+                if(compareSumPattern(srcPattern, templatePattern, pos)) {
+                    region.push_back(A);
+                    ct++;
+                }
             }
 //            std::cout << sum << " ";
         }
