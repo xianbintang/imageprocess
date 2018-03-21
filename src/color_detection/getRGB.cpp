@@ -71,11 +71,11 @@ int main( int argc, char** argv )
 //    imgRGB.create(480, 640, CV_8UC3);
     cv::cvtColor(imgYUV, imgRGB, CV_YUV420sp2BGR, 3);
     cv::cvtColor(imgRGB, imgHSV, CV_BGR2HSV_FULL, 3);
-
-    printHSV(imgHSV);
-    cvNamedWindow("imgRGB1", 2);
-    cvSetMouseCallback("imgRGB1", on_mouse, 0 );
-    cv::imshow( "imgRGB1", imgRGB );
+//
+//    printHSV(imgHSV);
+//    cvNamedWindow("imgRGB1", 2);
+//    cvSetMouseCallback("imgRGB1", on_mouse, 0 );
+//    cv::imshow( "imgRGB1", imgRGB );
 
     cvWaitKey();
     return 0;

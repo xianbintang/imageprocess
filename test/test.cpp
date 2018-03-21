@@ -38,6 +38,7 @@ void displayTextImage(const char *path, int width, int height)
     memset(img->imageData, 0, sizeof(char) * width * height);
     std::ifstream fin(path);
     int num;
+    int ct = 0;
     for (int i = 0; i < height; ++i) {
 //        unsigned char * prow = (unsigned char *)(img->imageData + i * img->widthStep);
         unsigned char* prow = (unsigned char*)(img->imageData + i * img->widthStep);
@@ -45,8 +46,12 @@ void displayTextImage(const char *path, int width, int height)
             fin >> num;
 //            std::cout << num << std::endl;
             prow[j] = num * 255;
+            if(num != 0 && i >0&& i < 480 && j > 0&& j < 640) {
+                ct++;
+            }
         }
     }
+    std::cout << "ct: " << ct << std::endl;
     cvShowImage("img", img);
     cvSaveImage("E://tmp//tmp.bmp", img);
     cvWaitKey();

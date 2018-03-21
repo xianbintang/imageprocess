@@ -24,6 +24,8 @@ const int WIDTH = 640;
 const int HEIGHT = 480;
 
 
+const int MIN_DIST = 2;
+
 #define CONTOUR_ACCURACY_LOW      0
 #define CONTOUR_ACCURACY_MEDIUM   1
 #define CONTOUR_ACCURACY_HIGH     2

@@ -8,11 +8,12 @@ set(CMAKE_BUILD_TYPE "Debug")
 
 
 if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
-    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -O3 ")
+#    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -O2 ")
+    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall ")
     add_definitions(-DRUN_PC)
     add_definitions(-DDEBUG_PRINT)
     add_definitions(-D_DEBUG_LEVEL_HIGH_)
-        add_definitions(-DNDEBUG)
+#        add_definitions(-DNDEBUG)
 else( CMAKE_BUILD_TYPE STREQUAL "Release" )
 #    set(CMAKE_BUILD_TYPE "Release")
 #    set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -std=c++14 -O3 -Wall")
@@ -100,7 +101,7 @@ target_link_libraries(readyuv ${OpenCV_LIBS})
 add_executable(testRotate test/rotateBitMap.cpp)
 target_link_libraries(testRotate ${OpenCV_LIBS})
 
-add_library(create_template_lib STATIC src/create_template_pc/contour_detection.h src/create_template_pc/contour_detection.cpp)
+add_library(create_template_lib STATIC src/create_template_pc/contour_detection.h src/create_template_pc/contour_detection.cpp Integral/integral_test.cpp)
 
 add_executable(myFilter test/myFilter.cpp)
 target_link_libraries(myFilter ${OpenCV_LIBS})
@@ -122,3 +123,10 @@ target_link_libraries(testNewWidth ${OpenCV_LIBS})
 
 add_executable(getRgb src/color_detection/getRGB.cpp)
 target_link_libraries(getRgb ${OpenCV_LIBS})
+
+add_executable(colorconfig src/color_detection/colorconfig.cpp)
+target_link_libraries(colorconfig ${OpenCV_LIBS})
+
+
+add_executable(integral_test  Integral/integral_test.cpp)
+target_link_libraries(integral_test ${OpenCV_LIBS})

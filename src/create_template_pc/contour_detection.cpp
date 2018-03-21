@@ -438,7 +438,7 @@ static int cutout_template_image(const cv::Mat &template_image, std::vector<cv::
 
 //    cv::rectangle(img_rotate, rect[0], rect[2], cv::Scalar(255,255,255));
 //    cv::imshow("eh" ,interesting_template);
-    cvWaitKey(0);
+//    cvWaitKey(0);
     return 0;
 }
 
@@ -551,9 +551,12 @@ static int do_create_template(TemplateStruct &tpl, const cv::Mat &src, const cv:
             cv::Point p;
             p.x = j;
             p.y = i;
-            // 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
             // todo 这里由于使用了位与操作，所以不用再判断距离了
-            if (U8 && dist_to_lines_less_than(rect, p, (tpl.modelHeight + tpl.modelWidth) / 200.0)) {
+            // 最小距离是多少还需要斟酌，因为在最小分辨率情况下看到边框还是没有去除掉，在最小分辨情况下这个dist太小了。
+            double min_dist = (tpl.modelHeight + tpl.modelWidth) / 100.0;
+            min_dist = (min_dist > MIN_DIST ? min_dist : MIN_DIST);
+            // todo 这里由于使用了位与操作，所以不用再判断距离了
+            if (U8 && dist_to_lines_less_than(rect, p, min_dist)) {
                 /* 如果梯度都为零，那么不需要计算，因为分数不会有贡献 */
                 if (fdx != 0 || fdy != 0) {
                     /* 坐标变换到外接矩形左上角为(0, 0) */
@@ -778,6 +781,8 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
 #endif
         cv::Mat cannyResult;
         cv::Canny(pyr, cannyResult, sensitity_threshold_high, sensitity_threshold_low);
+//        cv::imshow("hahahaha", cannyResult);
+//        cv::waitKey(0);
 
         cv::Point center;
         unsigned int num_of_contour;
@@ -912,7 +917,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
 {
     // 获取灰度图
     auto template_image = get_y_from_yuv(yuv, WIDTH, HEIGHT);
-
+    //cv::GaussianBlur(template_image, template_image, cv::Size(5,5),1);
     /* TODO 考虑不要旋转了，直接像圆那样截取出来吧 */
     /* 圆形检测区域不做复杂的旋转后截取，只有矩形的才做旋转后截取 */
     cv::Mat bitmapCleaned;
@@ -983,9 +988,11 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
     // 从bitmap中恢复被擦除的位图
     bitmap2Mat(bitmapCleaned, bitmapCleaned, koyo_tool_contour_parameter->bitmaps,
                koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height);
-
+//    cv::imshow("haha", bitmapCleaned);
+//    cv::waitKey(0);
     // 从外接矩形位图中获取模板部分的位图
     template_roi = template_image(cv::Rect(koyo_tool_contour_parameter->ext_rect_x, koyo_tool_contour_parameter->ext_rect_y, koyo_tool_contour_parameter->ext_rect_width, koyo_tool_contour_parameter->ext_rect_height));
+    cv::imwrite("data//roi_ext.jpg", template_roi);
     // 保证两次截取出来的图大小一样
     assert(template_roi.size == bitmapCleaned.size);
 //    std::cout << template_roi.cols << " " << template_roi.rows << std::endl;
@@ -1007,6 +1014,7 @@ char *create_template(const UINT8 *yuv, Koyo_Tool_Contour_Parameter *koyo_tool_c
     std::cout << "*****************" << buf_size << std::endl;
 //    cv::imshow("eh" ,template_roi);
 //    cvWaitKey(0);
+    std::cout << "now all done" << std::endl;
     return template_data.release();
 }
 
@@ -1014,6 +1022,7 @@ int get_contours(const UINT8 *yuv, UINT8 *contours[3])
 {
 
     auto src = get_y_from_yuv(yuv, WIDTH, HEIGHT);
+    cv::GaussianBlur(src, src, cv::Size(5,5),0);
     cv::Mat contour_low, contour_medium, contour_high;
     cv::Canny(src, contour_low, 10, 80);
     cv::Canny(src, contour_medium, 30, 150);
