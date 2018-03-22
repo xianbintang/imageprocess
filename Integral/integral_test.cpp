@@ -14,14 +14,14 @@ const int HEIGHT = 480;
 using namespace std;
 using namespace cv;
 
-const int BLOCKH = 32;
-const int BLOCKW = 32;
-const int NBLOCK = 7;
+const int BLOCKH = 8;
+const int BLOCKW = 8;
+const int NBLOCK = 4;
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
 cv::Mat colorImg;
-void saveMat(cv::Mat mat, const char *path) {
+void saveMat(const cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
     for (i = 0; i < mat.rows; ++i) {
@@ -33,7 +33,7 @@ void saveMat(cv::Mat mat, const char *path) {
     }
     fclose(fp);
 }
-void saveMatf(cv::Mat mat, const char *path) {
+void saveMatf(const cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
     for (i = 0; i < mat.rows; ++i) {
@@ -156,18 +156,19 @@ double computePointsChar(cv::Mat &image)
     return ct;
 }
 
-cv::Mat computeIntegral(cv::Mat &image)
+cv::Mat computeIntegral(const cv::Mat &image)
 {
-    cv::GaussianBlur(image, image, cv::Size(5,5),0);
-    cv::Canny(image, image, 30, 150);
-    std::cout << "after canny: " << computePointsChar(image) / 255 << std::endl;;
+    cv::Mat imgGB, imgCanny;
+    cv::GaussianBlur(image, imgGB, cv::Size(5,5),0);
+    cv::Canny(imgGB, imgCanny, 30, 150);
+//    std::cout << "after canny: " << computePointsChar(image) / 255 << std::endl;;
     cv::Mat integ;
-    cv::integral(image, integ,CV_32S); //计算积分图
+    cv::integral(imgCanny, integ,CV_32S); //计算积分图
 
     return integ;
 }
 
-bool compareSumPattern(cv::Mat &srcPattern, cv::Mat &targetPattern, cv::Point position)
+bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position)
 {
     int ct = 0;
     int ctnozero = 0;
@@ -179,21 +180,23 @@ bool compareSumPattern(cv::Mat &srcPattern, cv::Mat &targetPattern, cv::Point po
 
             if(targetCount) {
                 ctnozero++;
-                if(targetCount > 50) {
-                    threshold = targetCount * 0.5;
-                } else if (targetCount > 1){
+                if(targetCount > 20) {
+                    threshold = targetCount * 0.2;
+                } else if (targetCount > 10){
+                    threshold = targetCount / 3;
+                } else if (targetCount > 5){
                     threshold = targetCount / 2;
+                } else if(targetCount > 3){
+                    threshold = targetCount - 2;
                 }
 
-                if((position.x == 19 || position.x == 20) && position.y == 24) {
+                if(position.x == 6 && position.y == 6) {
 //                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] ";
-
                     if(abs(srcCount - targetCount) <= threshold) {
 //                        std::cout << "ok------ " << std::endl;;
                     } else {
 //                        std::cout << "bad***** " << std::endl;;
                     }
-
                 }
 
 
@@ -205,66 +208,121 @@ bool compareSumPattern(cv::Mat &srcPattern, cv::Mat &targetPattern, cv::Point po
     }
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
 //    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
-    if(1.0 * ct / ctnozero> 0.40) {
+    if(1.0 * ct / ctnozero> 0.70) {
 //        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
 //        std::cout << "position: " << position << "score: " << std::endl;
     }
-    return 1.0 * ct / ctnozero> 0.40;
+    return 1.0 * ct / ctnozero> 0.70;
+}
+
+
+static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Point centerP, float degree)
+{
+    int width = src.cols;
+    int height = src.rows;
+    double angle = degree  * CV_PI / 180.; // 弧度
+    double a = sin(angle), b = cos(angle);
+    // 适当增大一点宽高，防止像素不在图像内
+    int width_rotate = int(height * fabs(a) + width * fabs(b));
+    int height_rotate = int(width * fabs(a) + height * fabs(b));
+    float map[6];
+    cv::Mat map_matrix = cv::Mat(2, 3, CV_32F, map);
+//    CvPoint2D32f center = cvPoint2D32f(centerP.x, centerP.y);
+// 旋转中心, 以原始图片中心作为旋转中心而不是质心
+    CvPoint2D32f center = cvPoint2D32f( width / 2.0, height / 2.0);
+    CvMat map_matrix2 = map_matrix;
+    cv2DRotationMatrix(center, degree, 1.0, &map_matrix2);
+    // 这里不能改
+    map[2] += (width_rotate - width) / 2.0;
+    map[5] += (height_rotate - height) / 2.0;
+    cv::warpAffine(src, dst, map_matrix, cv::Size(width_rotate, height_rotate), 1, 0, 0);
+    std::vector<float> rotate_matrix;
+    rotate_matrix.push_back(map[0]);
+    rotate_matrix.push_back(map[1]);
+    rotate_matrix.push_back(map[2]);
+    rotate_matrix.push_back(map[3]);
+    rotate_matrix.push_back(map[4]);
+    rotate_matrix.push_back(map[5]);
+    return rotate_matrix;
 }
 int findTargetArea(cv::Mat &src, cv::Mat &target)
 {
 
-    TimeTracker tt;
+    int total = 0;
+    cv::Mat origin_src = src;
+    cv::Mat origin_target = target;
+    for (double d = 0.0; (int)d < 360; d += 1) {
+        src = origin_src;
+        cv::Mat rotated_image;
+        // 还是无法保证完全在图片框内
+        auto rotate_matrix = rotate_image(src, rotated_image, cv::Point(src.rows / 2, src.cols / 2), d);
+        src = rotated_image;
 
-    // 返回指向需要被发送的内存缓冲区的指针
-    auto integ= computeIntegral(src);
-    auto tobe= computeIntegral(target);
-    Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
-    auto tobeSum = getCurrentSum(target, A, D, 0);
+//        target = origin_target;
+//        imshow("tar", target);
+//        imshow("sar", src);
+//        rotate_image(target, rotated_image, cv::Point(target.rows / 2, target.cols / 2), d);
+//        imshow("rotar", rotated_image);
 
-    int patternSize = 2;
-    // 计算模板的pattern
-    auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
-    std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
+        colorImg = src;
+        TimeTracker tt;
+        std::vector<Point> region;
+        // 返回指向需要被发送的内存缓冲区的指针
+        auto integ= computeIntegral(src);
+        auto tobe= computeIntegral(target);
+        Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
+//        auto tobeSum = getCurrentSum(target, A, D, 0);
 
-    // 计算图片的pattern
+        int patternSize = 4;
+        // 计算模板的pattern
+        auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
+//        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
-    A = Point(0, 0);
-    D=  Point(src.cols - 1, src.rows - 1);
-    auto srcPattern = CreateIntegralSum(integ, A, D, patternSize);
-    std::cout << " ct: " << computePointsInt(srcPattern) << std::endl;
+        // 计算图片的pattern
 
-    std::vector<Point> region;
-    tt.start();
-    int ct = 0;
-    for (int i = 0; i < src.rows; i += BLOCKH) {
-        for (int j = 0; j < src.cols; j += BLOCKW) {
-            Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
-            int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > 1700 ) {
-                // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
-                Point pos = Point(j / patternSize, i / patternSize);
-                if(compareSumPattern(srcPattern, templatePattern, pos)) {
-                    region.push_back(A);
-                    ct++;
+        A = Point(0, 0);
+        D=  Point(src.cols - 1, src.rows - 1);
+        auto srcPattern = CreateIntegralSum(integ, A, D, patternSize);
+//        std::cout << " ct: " << computePointsInt(srcPattern) << std::endl;
+
+        tt.start();
+        int ct = 0;
+
+        for (int i = 0; i < src.rows; i += BLOCKH) {
+            for (int j = 0; j < src.cols; j += BLOCKW) {
+                Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
+                int sum = getCurrentSum(integ, A, D, 0);
+                if(sum > 130 ) {
+                    // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
+                    // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
+                    for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
+                        Point pos = Point(j/patternSize + k, i/patternSize + k);
+                        if(compareSumPattern(srcPattern, templatePattern, pos)) {
+                            region.push_back(A);
+                            ct++;
+                        }
+                    }
+
                 }
-            }
 //            std::cout << sum << " ";
+            }
         }
-    }
     tt.stop();
-    std::cout << "duration: " << tt.duration() << std::endl;
+//    std::cout << "duration: " << tt.duration() << std::endl;
     for (int i = 0; i < region.size(); ++i) {
 //        cv::circle(colorImg, region[i], 1, cv::Scalar(0,0,255));
-        cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(0,0,255));
-//        cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(0,0,255));
+        cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
+        cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
     }
-    std::cout << ct << std::endl;
-    cv::imshow("integimg", integ);
-    cv::imshow("tobe", tobe);
+    std::cout << "targets: " << ct << " degree: " << d << std::endl;
+        total += ct;
+//    cv::imshow("integimg", integ);
+//    cv::imshow("tobe", tobe);
     cv::imshow("colorImg", colorImg);
 
     cv::waitKey(0);
+    }
+    std::cout << "total: " << total << std::endl;
 }
 
 int main(int argc, char **argv)
