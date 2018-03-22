@@ -14,9 +14,9 @@ const int HEIGHT = 480;
 using namespace std;
 using namespace cv;
 
-const int BLOCKH = 8;
-const int BLOCKW = 8;
-const int NBLOCK = 30;
+const int BLOCKH = 32;
+const int BLOCKW = 32;
+const int NBLOCK = 7;
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
@@ -61,11 +61,11 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
 inline int getCurrentSum(const Mat &integral, Point &posA, Point &posD, int size)
 {
     int A = 0, B = 0, C = 0, D = 0;
-    if(posD.x > integral.cols) {
+    if(posD.x >= integral.cols) {
         posD.x = integral.cols - 1;
     }
 
-    if(posD.y > integral.rows) {
+    if(posD.y >= integral.rows) {
         posD.y = integral.rows - 1 ;
     }
     A = integral.at<int>(posA.y, posA.x);
@@ -173,16 +173,43 @@ bool compareSumPattern(cv::Mat &srcPattern, cv::Mat &targetPattern, cv::Point po
     int ctnozero = 0;
     for (int i = 0; i < targetPattern.rows; ++i) {
         for (int j = 0; j < targetPattern.cols; ++j) {
-            if(targetPattern.at<int>(i, j)) {
+            int targetCount = targetPattern.at<int>(i, j);
+            int srcCount = srcPattern.at<int>(i + position.y, j + position.x);
+            int threshold = 1;
+
+            if(targetCount) {
                 ctnozero++;
-            }
-            if(targetPattern.at<int>(i, j) && abs(srcPattern.at<int>(i + position.y, j + position.x) - targetPattern.at<int>(i, j)) < 16) {
-                ct++;
+                if(targetCount > 50) {
+                    threshold = targetCount * 0.5;
+                } else if (targetCount > 1){
+                    threshold = targetCount / 2;
+                }
+
+                if((position.x == 19 || position.x == 20) && position.y == 24) {
+//                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] ";
+
+                    if(abs(srcCount - targetCount) <= threshold) {
+//                        std::cout << "ok------ " << std::endl;;
+                    } else {
+//                        std::cout << "bad***** " << std::endl;;
+                    }
+
+                }
+
+
+                if(abs(srcCount - targetCount) <= threshold) {
+                    ct++;
+                }
             }
         }
     }
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
-    return 1.0 * ct / ctnozero> 0.70;
+//    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
+    if(1.0 * ct / ctnozero> 0.40) {
+//        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
+//        std::cout << "position: " << position << "score: " << std::endl;
+    }
+    return 1.0 * ct / ctnozero> 0.40;
 }
 int findTargetArea(cv::Mat &src, cv::Mat &target)
 {
@@ -195,7 +222,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
     auto tobeSum = getCurrentSum(target, A, D, 0);
 
-    int patternSize = 8;
+    int patternSize = 2;
     // 计算模板的pattern
     auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
     std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
@@ -214,7 +241,8 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         for (int j = 0; j < src.cols; j += BLOCKW) {
             Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > 1800 ) {
+            if(sum > 1700 ) {
+                // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 Point pos = Point(j / patternSize, i / patternSize);
                 if(compareSumPattern(srcPattern, templatePattern, pos)) {
                     region.push_back(A);
