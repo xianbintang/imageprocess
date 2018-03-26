@@ -156,9 +156,15 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
         }
     }
 
+    int candidates[50000][3];
+    int numof_candidates = 0;
+    memset(candidates, 0, sizeof(int) * 50000* 3);
+#if 0
     int candidates[10000][3];
     int numof_candidates = 0;
     memset(candidates, 0, sizeof(int) * 10000 * 3);
+#endif
+
     TimeTracker t1;
     t1.start();
     TimeTracker t2;
@@ -170,7 +176,7 @@ static void hough(Circle_runtime_param &circle_runtime_param, double threshold, 
         for(int x=regionx; x > 0 && x<img_data.cols && x < region_width + regionx; x++)
         {
             // printf("data point : %f\n", img_data.at<float>(y,x));
-            if( img_data.at<uchar>(y,x) > 250 )  //threshold image
+            if( img_data.at<uchar>(y,x) > 180)  //threshold image
             {
                 ct++;
                 double theta = ang.at<float>(y,x);
@@ -420,4 +426,80 @@ int circle_detection_config(const UINT8 *yuv, std::vector<Result_Circle> &circle
     return 0;
 }
 
+/* 八个方向上的圆周是不是都是边缘点，他们的梯度是不是都是半径的径向 */
+bool is_circle(Point p, int radius, Mat mag,Mat dist,  Mat dx, Mat dy, double *score)
+{
+//    double angles[8] = {3.14159265f * 0 / 180, 3.14159265f * 45 / 180, 3.14159265f * 90 / 180,
+//                        3.14159265f * 135 / 180, 3.14159265f * 180 / 180, 3.14159265f * -45 / 180,
+//                        3.14159265f * 270 / -90, 3.14159265f * -135/ 180};
+    int count = 0;
+    int width = mag.cols;
+    int height = mag.rows;
+//    std::cout << "\nis it a circle? " << std::endl;
+    for (int i = -180; i < 180; i += 1) {
+        double angle = 3.14159265f * i / 180;
+        int x0 = (int)round(p.x + radius * cos(angle));
+        int y0 = (int)round(p.y + radius * sin(angle));
+        short sdxv, sdyv;
+        if (y0 < 0 || x0 < 0 || y0 >= height || x0 >= width)
+            continue;
+        sdxv = dx.at<short>(y0, x0);
+        sdyv = dy.at<short>(y0, x0);
+        double radial_direction = atan2f(sdyv, sdxv);
+        double radial_direction1 = atan2f(-sdyv, -sdxv);
+
+//        printf("%lf %lf \n", angle, radial_direction);
+        /* 若方向相差角度为30度以内：30 * PI / 180 == 0.52, 角度如果小的话不能检测出不规整的圆 */
+        if (fabs(angle - radial_direction) < 0.26 || fabs(angle - radial_direction1) < 0.26) {
+            count++;
+        }
+    }
+    *score = 1.0 * count / 360;
+    /* 拟合60%的点 */
+    /* 至少拟合一半的点数 */
+    return count > 180;
+}
+
+/* 判断不同半径情况下检测出来的圆是不是已经检测过了，半径是否类似，圆心位置是否类似 */
+void remove_duplicates(Circle circles[], int num)
+{
+    for (int i = 0; i < num; ++i) {
+        for (int j = i + 1; j < num; ++j) {
+            if (circles[i].radius == 0)
+                continue;
+            int x0, y0, r0, x1, y1, r1;
+            double s0, s1;
+            x0 = circles[i].center.x;
+            y0 = circles[i].center.y;
+            x1 = circles[j].center.x;
+            y1 = circles[j].center.y;
+
+            r0 = circles[i].radius;
+            r1 = circles[j].radius;
+
+            s0 = circles[i].score;
+            s1 = circles[j].score;
+            if ((abs(x0 - x1) < 8 && abs(y0 - y1) < 8) && abs(r0 - r1) < 8) {
+                if (s0 > s1) {
+                    circles[j].center.x = 0;
+                    circles[j].center.y = 0;
+                    circles[j].radius = 0;
+                    circles[j].score = 0;
+                } else {
+                    circles[i].center.x = 0;
+                    circles[i].center.y = 0;
+                    circles[i].radius = 0;
+                    circles[i].score = 0;
+                }
+            }
+        }
+    }
+}
+
+/*
+ * todo 已经实现了
+ * */
+void do_detect(Mat &img_data,  Mat &dist, Mat &sdx, Mat &sdy, Region region, int target_radius, int low_threshold, int high_threshold) {
+}
+}
 

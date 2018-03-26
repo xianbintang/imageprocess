@@ -161,7 +161,7 @@ cv::Mat computeIntegral(const cv::Mat &image)
     cv::Mat imgGB, imgCanny;
     cv::GaussianBlur(image, imgGB, cv::Size(5,5),0);
     cv::Canny(imgGB, imgCanny, 30, 150);
-//    std::cout << "after canny: " << computePointsChar(image) / 255 << std::endl;;
+//    std::cout << "after canny: " << computePointsChar(imgCanny) / 255 << std::endl;;
     cv::Mat integ;
     cv::integral(imgCanny, integ,CV_32S); //计算积分图
 
@@ -208,11 +208,11 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     }
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
 //    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
-    if(1.0 * ct / ctnozero> 0.70) {
+    if(1.0 * ct / ctnozero> 0.75) {
 //        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
 //        std::cout << "position: " << position << "score: " << std::endl;
     }
-    return 1.0 * ct / ctnozero> 0.70;
+    return 1.0 * ct / ctnozero> 0.75;
 }
 
 
@@ -251,6 +251,8 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     int total = 0;
     cv::Mat origin_src = src;
     cv::Mat origin_target = target;
+    TimeTracker tt;
+    int totalTime = 0;
     for (double d = 0.0; (int)d < 360; d += 1) {
         src = origin_src;
         cv::Mat rotated_image;
@@ -265,7 +267,6 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //        imshow("rotar", rotated_image);
 
         colorImg = src;
-        TimeTracker tt;
         std::vector<Point> region;
         // 返回指向需要被发送的内存缓冲区的指针
         auto integ= computeIntegral(src);
@@ -273,7 +274,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
 //        auto tobeSum = getCurrentSum(target, A, D, 0);
 
-        int patternSize = 4;
+        int patternSize = 2;
         // 计算模板的pattern
         auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
 //        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
@@ -292,7 +293,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             for (int j = 0; j < src.cols; j += BLOCKW) {
                 Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
                 int sum = getCurrentSum(integ, A, D, 0);
-                if(sum > 130 ) {
+                if(sum > 200 && sum < 250) {
                     // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                     // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
                     for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
@@ -308,21 +309,22 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             }
         }
     tt.stop();
+        totalTime += tt.duration();
 //    std::cout << "duration: " << tt.duration() << std::endl;
     for (int i = 0; i < region.size(); ++i) {
 //        cv::circle(colorImg, region[i], 1, cv::Scalar(0,0,255));
         cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
         cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
     }
-    std::cout << "targets: " << ct << " degree: " << d << std::endl;
+//    std::cout << "targets: " << ct << " degree: " << d << std::endl;
         total += ct;
 //    cv::imshow("integimg", integ);
 //    cv::imshow("tobe", tobe);
     cv::imshow("colorImg", colorImg);
 
-    cv::waitKey(0);
+    cv::waitKey(50);
     }
-    std::cout << "total: " << total << std::endl;
+    std::cout << "total: " << total << "time: " << totalTime << std::endl;
 }
 
 int main(int argc, char **argv)

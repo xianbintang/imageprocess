@@ -17,9 +17,15 @@ void displayTextImagebitMat(const char *path, int width, int height)
     std::ifstream fin(path);
     int num = 0;
 
+    int ct = 0;
     unsigned char* prow = (unsigned char*)(img->imageData);
     while(fin >> num) {
-        std::cout << num << std::endl;
+        ct++;
+        if(ct >= width * height / 8) {
+            std::cout << "out of board" << std::endl;
+            break;
+        }
+//        std::cout << num << std::endl;
         for (int i = 0; i < 8; ++i) {
             auto bit = std::bitset<10>(num);
             *prow = bit[7] * 255;
@@ -27,10 +33,11 @@ void displayTextImagebitMat(const char *path, int width, int height)
             num <<= 1;
         }
     }
+    std::cout << "ct: " << ct << std::endl;
 
     cvShowImage("img", img);
     cv::waitKey(0);
-    cvSaveImage("E://tmp//tmp.bmp", img);
+//    cvSaveImage("E://tmp//tmp139.bmp", img);
 }
 void displayTextImage(const char *path, int width, int height)
 {
@@ -53,7 +60,7 @@ void displayTextImage(const char *path, int width, int height)
     }
     std::cout << "ct: " << ct << std::endl;
     cvShowImage("img", img);
-    cvSaveImage("E://tmp//tmp.bmp", img);
+//    cvSaveImage("E://tmp//tmp.bmp", img);
     cvWaitKey();
 }
 

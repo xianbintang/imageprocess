@@ -46,6 +46,12 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
 
 
 #define _PEN_
+//#define _CPU_TEST45_
+//#define _KOYO_TEST_
+
+//#define _CPU_TEST_
+//#define _MILK_
+//#define _CPU_TEST45_
 //#define _KOYO_TEST_
 
 #ifdef _PEN_
@@ -269,6 +275,19 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.detect_rect_x3 = 635;
     koyo_tool_contour_parameter.detect_rect_y3 = 122;
 #endif
+#ifdef _MILK_
+    koyo_tool_contour_parameter.detect_rect_x0 = 200;
+    koyo_tool_contour_parameter.detect_rect_y0 = 170;
+
+    koyo_tool_contour_parameter.detect_rect_x1 = 200;
+    koyo_tool_contour_parameter.detect_rect_y1 = 420;
+
+    koyo_tool_contour_parameter.detect_rect_x2 = 386;
+    koyo_tool_contour_parameter.detect_rect_y2 = 420;
+
+    koyo_tool_contour_parameter.detect_rect_x3 = 386;
+    koyo_tool_contour_parameter.detect_rect_y3 = 170;
+#endif
 
     koyo_tool_contour_parameter.sensitivity = CONTOUR_ACCURACY_MEDIUM;
     koyo_tool_contour_parameter.angle_range = 180;
@@ -285,7 +304,19 @@ void init_contour_parameter(Koyo_Tool_Contour_Parameter &koyo_tool_contour_param
     koyo_tool_contour_parameter.ext_rect_y = 190;
     koyo_tool_contour_parameter.ext_rect_width = 406 - 157;
     koyo_tool_contour_parameter.ext_rect_height = 433- 190;
+//#ifdef _CPU_TEST_
+//    koyo_tool_contour_parameter.ext_rect_x = 131;
+//    koyo_tool_contour_parameter.ext_rect_y = 29;
+//    koyo_tool_contour_parameter.ext_rect_width = 445;
+//    koyo_tool_contour_parameter.ext_rect_height = 445;
+//#endif
 
+#ifdef _MILK_
+    koyo_tool_contour_parameter.ext_rect_x = 200;
+    koyo_tool_contour_parameter.ext_rect_y = 170;
+    koyo_tool_contour_parameter.ext_rect_width = 180;
+    koyo_tool_contour_parameter.ext_rect_height = 250;
+#endif
 #ifdef _KOYO_TEST_
     koyo_tool_contour_parameter.ext_rect_x = 110;
     koyo_tool_contour_parameter.ext_rect_y = 167;
