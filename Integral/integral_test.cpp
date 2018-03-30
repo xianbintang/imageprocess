@@ -168,7 +168,7 @@ cv::Mat computeIntegral(const cv::Mat &image)
     return integ;
 }
 
-bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position)
+bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh)
 {
     int ct = 0;
     int ctnozero = 0;
@@ -189,6 +189,8 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
                 } else if(targetCount > 3){
                     threshold = targetCount - 2;
                 }
+                if(targetCount == 3)
+                    threshold = 2;
 
                 if(position.x == 6 && position.y == 6) {
 //                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] ";
@@ -208,11 +210,11 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     }
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
 //    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
-    if(1.0 * ct / ctnozero> 0.75) {
-//        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
+    if(1.0 * ct / ctnozero> thresh) {
+        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << "threshold: " << thresh << std::endl;
 //        std::cout << "position: " << position << "score: " << std::endl;
     }
-    return 1.0 * ct / ctnozero> 0.75;
+    return 1.0 * ct / ctnozero> thresh;
 }
 
 
@@ -247,7 +249,6 @@ static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Poi
 }
 int findTargetArea(cv::Mat &src, cv::Mat &target)
 {
-
     int total = 0;
     cv::Mat origin_src = src;
     cv::Mat origin_target = target;
@@ -274,18 +275,25 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         Point A = Point(0, 0), D=  Point(target.cols - 1, target.rows - 1);
 //        auto tobeSum = getCurrentSum(target, A, D, 0);
 
-        int patternSize = 2;
+        int patternSize = 4;
         // 计算模板的pattern
-        auto templatePattern = CreateIntegralSum(tobe, A, D, patternSize);
+        auto templatePattern8 = CreateIntegralSum(tobe, A, D, 8);
+        auto templatePattern4 = CreateIntegralSum(tobe, A, D, 4);
+        auto templatePattern2 = CreateIntegralSum(tobe, A, D, 2);
 //        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
         // 计算图片的pattern
 
         A = Point(0, 0);
         D=  Point(src.cols - 1, src.rows - 1);
-        auto srcPattern = CreateIntegralSum(integ, A, D, patternSize);
+        auto srcPattern8 = CreateIntegralSum(integ, A, D, 8);
+        auto srcPattern4 = CreateIntegralSum(integ, A, D, 4);
+        auto srcPattern2 = CreateIntegralSum(integ, A, D, 2);
 //        std::cout << " ct: " << computePointsInt(srcPattern) << std::endl;
 
+//        cv::imshow("s", srcPattern8);
+//        cv::imshow("t", templatePattern8);
+//        cv::waitKey(0);
         tt.start();
         int ct = 0;
 
@@ -293,14 +301,22 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             for (int j = 0; j < src.cols; j += BLOCKW) {
                 Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
                 int sum = getCurrentSum(integ, A, D, 0);
-                if(sum > 200 && sum < 250) {
+                if(sum > 130 && sum < 180) {
                     // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                     // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
                     for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
                         Point pos = Point(j/patternSize + k, i/patternSize + k);
-                        if(compareSumPattern(srcPattern, templatePattern, pos)) {
-                            region.push_back(A);
-                            ct++;
+                        if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.75)) {
+                            // pos是目标位置，从目标位置进行扩展
+//                            std::cout << "pos: " << pos << std::endl;
+                            for (int m = -1; m < 1; ++m) {
+                                Point pos1 = Point(j/2 + m, i/2 + m);
+//                                std::cout << "pos1: " << pos1 << std::endl;
+                                if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.65)) {
+                                    region.push_back(A);
+                                    ct++;
+                                }
+                            }
                         }
                     }
 
@@ -315,14 +331,13 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //        cv::circle(colorImg, region[i], 1, cv::Scalar(0,0,255));
         cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
         cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
+        cv::imshow("colorImg", colorImg);
+        cv::waitKey(0);
     }
 //    std::cout << "targets: " << ct << " degree: " << d << std::endl;
         total += ct;
 //    cv::imshow("integimg", integ);
 //    cv::imshow("tobe", tobe);
-    cv::imshow("colorImg", colorImg);
-
-    cv::waitKey(50);
     }
     std::cout << "total: " << total << "time: " << totalTime << std::endl;
 }
