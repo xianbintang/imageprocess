@@ -25,7 +25,7 @@ const int HEIGHT = 480;
 const int MIN_DIST = 2;
 
 
-const int MIN_DIST = 2;
+//const int MIN_DIST = 2;
 
 #define CONTOUR_ACCURACY_LOW      0
 #define CONTOUR_ACCURACY_MEDIUM   1
@@ -53,6 +53,7 @@ typedef struct TemplateMatch
     std::vector<cv::Point>			cordinates;		//Coordinates array to store mo hjel points	model points 也就是所有的边缘点
     std::vector<float>			edgeDerivativeX;	//gradient in X direction
     std::vector<float>			edgeDerivativeY;	//gradient in Y direction
+    std::vector<cv::Mat> integs;
 } TemplateStruct;
 
 // 工具级别的参数, 客户端传下来的

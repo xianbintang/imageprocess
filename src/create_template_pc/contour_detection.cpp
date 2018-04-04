@@ -18,6 +18,7 @@
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
+using namespace cv;
 void saveMat(cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
@@ -80,6 +81,16 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
             buf_size += sizeof(short) * 2 * tpl.noOfCordinates;
             buf_size += sizeof(float) * tpl.noOfCordinates;
             buf_size += sizeof(float) * tpl.noOfCordinates;
+
+            // 积分图
+            for (int i = 0; i < tpl.integs.size(); ++i) {
+                /* 保存高宽属性 */
+                buf_size += sizeof(short);
+                buf_size += sizeof(short);
+
+                /* 保存积分图内容 */
+                buf_size += 4 * tpl.integs[i].rows * tpl.integs[i].cols;
+            }
         }
     }
 
@@ -150,6 +161,24 @@ static std::unique_ptr<char[]> pack_template(const Koyo_Contour_Template_Runtime
             for (auto const & edgeY : tpl.edgeDerivativeY) {
                 memcpy(&buf[index], &edgeY, sizeof(float));
                 index += sizeof(float);
+            }
+
+            for (int i = 0; i < tpl.integs.size(); ++i) {
+                auto t = tpl.integs[i];
+                short r = static_cast<short>(t.rows);
+                short c = static_cast<short>(t.cols);
+
+                memcpy(&buf[index], &c, sizeof(short));
+                index += sizeof(short);
+
+                memcpy(&buf[index], &r, sizeof(short));
+                index += sizeof(short);
+
+                memcpy(&buf[index], t.data, 4 * r * c);
+                index += 4 * r * c;
+
+//                cv::imshow("haha", t);
+//                cv::waitKey(0);
             }
         }
     }
@@ -223,7 +252,7 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
         exit(-1);
     }
 
-    char *pb = (char *)malloc(50 * 1024 * 1024); //预分配30MB大小
+    char *pb = (char *)malloc(80 * 1024 * 1024); //预分配30MB大小
 
     int count = 0;
     int rc;
@@ -312,6 +341,20 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
                 float edgeY = *((float*)&buf[index]);
                 index += sizeof(float);
                 tpl.edgeDerivativeY.push_back(edgeY);
+            }
+
+            for (int i = 0; i < 4; ++i) {
+                short r = *((short*)&buf[index]);
+                index += sizeof(short);
+                short c = *((short*)&buf[index]);
+                index += sizeof(short);
+
+                cv::Mat m;
+                m.create(r, c, CV_32S);
+                memcpy(m.data, &buf[index], 4 * r * c);
+
+                index += 4*r*c;
+                tpl.integs.push_back(m);
             }
             tpl_arr.push_back(tpl);
         }
@@ -726,6 +769,59 @@ static void Mat2bitmap(const cv::Mat &src, cv::Mat &dst, UINT8 bitmap[], UINT16 
     }
 }
 
+inline int getCurrentSum(const Mat &integral, Point &posA, Point &posD, int size)
+{
+    int A = 0, B = 0, C = 0, D = 0;
+    if(posD.x >= integral.cols) {
+        posD.x = integral.cols - 1;
+    }
+
+    if(posD.y >= integral.rows) {
+        posD.y = integral.rows - 1 ;
+    }
+    A = integral.at<int>(posA.y, posA.x);
+    B = integral.at<int>(posA.y, posD.x);
+    C = integral.at<int>(posD.y, posA.x);
+    D = integral.at<int>(posD.y, posD.x);
+
+//    std::cout << posA << " " << posD << " ";
+    int sum = (A + D - B - C) / 255;
+
+    return sum;
+}
+Mat CreateIntegralSum(const Mat &mat, Point &start, Point &end, int patternSize)
+{
+//    int mean = getCurrentSum(mat, start, end, (end.x - start.x + 1) * (end.y - start.y + 1));
+    Mat sumPattern;
+    sumPattern.create(mat.rows / patternSize, mat.cols / patternSize, CV_32SC(1));
+
+    for(int i=0;i<sumPattern.rows;i++)
+    {
+        for(int j=0;j<sumPattern.cols;j++)
+        {
+            /* Point 是(x, y)而不是(y, x)*/
+            Point A = Point(start.x + j * patternSize, start.y + i * patternSize), D = Point(start.x + (j + 1) * patternSize, start.y + (i + 1) * patternSize);
+            auto curSum = getCurrentSum(mat, A, D , 0);
+            sumPattern.at<int>(i, j) = curSum;
+//            if(curSum != 0)
+//                std::cout << curSum << std::endl;
+        }
+    }
+    return sumPattern;
+}
+
+cv::Mat computeIntegral(const cv::Mat &image)
+{
+    cv::Mat imgGB, imgCanny;
+    cv::GaussianBlur(image, imgGB, cv::Size(5,5),0);
+    cv::Canny(imgGB, imgCanny, 30, 150);
+//    std::cout << "after canny: " << computePointsChar(imgCanny) / 255 << std::endl;;
+    cv::Mat integ;
+    cv::integral(imgCanny, integ,CV_32S); //计算积分图
+
+    return integ;
+}
+
 /*
  * src是截取出来的模板图片
  * bitmapCleaned是位图，大小和src一致
@@ -842,7 +938,21 @@ static int do_create_template(const cv::Mat &src, const cv::Mat &bitMap, Koyo_To
             auto rotate_matrix = rotate_image(pyramid_templates[i], rotated_image, centers[i], j);
             rotate_rect(rect, rotate_matrix);
             // todo 多传一个参数，旋转后的bitmap
+
+            auto integ= computeIntegral(rotated_image);
+            Point A = Point(0, 0), D=  Point(rotated_image.cols - 1, rotated_image.rows - 1);
+            auto templatePattern16 = CreateIntegralSum(integ, A, D, 16);
+            auto templatePattern8 = CreateIntegralSum(integ, A, D, 8);
+            auto templatePattern4 = CreateIntegralSum(integ, A, D, 4);
+            auto templatePattern2 = CreateIntegralSum(integ, A, D, 2);
+
+
             do_create_template(tpl, rotated_image, rotated_image_bmap, sensitity_threshold_low, sensitity_threshold_high, rect);
+            tpl.integs.push_back(templatePattern2);
+            tpl.integs.push_back(templatePattern4);
+            tpl.integs.push_back(templatePattern8);
+            tpl.integs.push_back(templatePattern16);
+
             cur_level_tpl.push_back(tpl);
 //            draw_template(rotated_image, tpl);
 //            cv::imshow(std::string("pyr") + std::string(1, i - '0'), rotated_image);
