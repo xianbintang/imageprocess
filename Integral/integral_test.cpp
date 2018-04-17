@@ -347,63 +347,72 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                     // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
 
-                    for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
-                        Point pos = Point(j/patternSize+ k, i/patternSize + k);
-                        if(pos.x < 0) {
-                            pos.x = 0;
-                        }
-                        if(pos.y < 0) {
-                            pos.y = 0;
-                        }
+//                    for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
+                    int rg = 10;
+                    for (int rangei = -rg; rangei < rg; ++rangei) {
+                        for (int rangej = -rg; rangej < rg; ++rangej) {
+                            Point pos = Point(j/patternSize + rangej, i/patternSize + rangei);
+                            if(pos.x < 0) {
+                                pos.x = 1;
+                            }
+                            if(pos.y < 0) {
+                                pos.y = 1;
+                            }
 //                        cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
+//                        cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
 //                        cv::imshow("tmpX", colorImg4);
 //                        cv::waitKey(0);
-                        if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.35)) {
+                            if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.45)) {
 //                            cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
-                            cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
-                            cv::imshow("tmpX", colorImg4);
-                            cv::waitKey(0);
+//                                cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
+//                                cv::imshow("tmpX", colorImg4);
+//                                cv::waitKey(0);
 
-                            // pos是目标位置，从目标位置进       行扩展
+                                // pos是目标位置，从目标位置进       行扩展
 //                            std::cout << "pos: " << pos << std::endl;
-                            for (int m = -10; m < 10; ++m) {
-                                Point pos1 = Point(j/2 + m, i/2 + m);
-                                if(pos1.x < 0) {
-                                    pos1.x = 0;
-                                }
-                                if(pos1.y < 0) {
-                                    pos1.y = 0;
-                                }
+                                int rg = 10;
+                                for (int m = -rg; m < rg; ++m) {
+                                    for (int n = -rg; n < rg; ++n) {
+                                        Point pos1 = Point(pos.x * 2 + n, pos.y * 2 + m);
+                                        if(pos1.x < 0) {
+                                            pos1.x = 1;
+                                        }
+                                        if(pos1.y < 0) {
+                                            pos1.y = 1;
+                                        }
 //                                std::cout << "pos1: " << pos1 << std::endl;
-                                if(A.x == 96 && A.y == 96) {
-                                    std::cout << "pos1: " << pos1 << std::endl;
-                                }
-                                if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.65)) {
-                                    region.push_back(A);
-                                    ct++;
+//                                        if(A.x == 96 && A.y == 96) {
+//                                            std::cout << "pos1: " << pos1 << std::endl;
+//                                        }
+                                        if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.40)) {
+                                            region.push_back(cv::Point(pos1.x * 2, pos1.y * 2));
+                                            ct++;
+                                        }
+                                    }
+
                                 }
                             }
                         }
-                    }
 
+                    }
                 }
+
 //            std::cout << sum << " ";
             }
         }
-    tt.stop();
+        tt.stop();
         totalTime += tt.duration();
-//    std::cout << "duration: " << tt.duration() << std::endl;
-    for (int i = 0; i < region.size(); ++i) {
+        std::cout << "duration: " << tt.duration() << std::endl;
+        for (int i = 0; i < region.size(); ++i) {
 //        cv::circle(colorImg, region[i], 1, cv::Scalar(0,0,255));
 //        if(abs(region[i].x - 32) < 3 && abs(region[i].y - 32) < 3) {
-
-        std::cout << region[i] << std::endl;
-        cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
-        cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
-        cv::imshow("colorImg", colorImg);
-        cv::waitKey(0);
+            std::cout << region[i] << std::endl;
+            cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
+            cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
+            cv::imshow("colorImg", colorImg);
+            cv::waitKey(10);
 //        }
-    }
+        }
 //    std::cout << "targets: " << ct << " degree: " << d << std::endl;
         total += ct;
 //    cv::imshow("integimg", integ);
