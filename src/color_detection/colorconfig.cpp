@@ -7,14 +7,28 @@
  typedef uchar UINT8;
 const int WIDTH = 640;
 const int HEIGHT = 480;
+
+void printHSV(cv::Mat hsvimage) {
+	std::ofstream of;
+	of.open("data//csc1.txt");
+	for (int i = 0; i < hsvimage.rows; ++i) {
+		for (int j = 0; j < hsvimage.cols; ++j) {
+			auto hsvv =hsvimage.at<cv::Vec3b>(i,j);
+			//printf("(%d,%d)H= %d,S = %d, V = %d\n",i,j,hsvv[0],hsvv[1],hsvv[2]);
+			of<< "H: " << (int)hsvv[0] << " " << "S: " <<(int)hsvv[1] << " " << "V: " <<(int)hsvv[2] << " i: " << i << " " << "j: " << j << " " << std::endl;;
+		}
+	}
+	of.close();
+}
 int get_hsv(const UINT8 *yuv, UINT8 *hsv[3] ) {
 	cv::Mat imgRGB, imgHSV, img_h, img_s, img_v;
 
 	cv::Mat imgYUV(480 + 480 / 2, 640, CV_8UC1, (void*)yuv);
 	// imgRGB.create(480, 640, CV_8UC3);
-	cv::cvtColor(imgYUV, imgRGB, CV_YUV420p2BGR, 3);
+	cv::cvtColor(imgYUV, imgRGB, CV_YUV420sp2BGR, 3);
 	cv::cvtColor(imgRGB, imgHSV, CV_BGR2HSV_FULL, 3);
 
+    printHSV(imgHSV);
 	cv::Mat hsv_vec[3];
 	cv::split(imgHSV, hsv_vec);
 	img_h = hsv_vec[0];

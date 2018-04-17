@@ -311,6 +311,7 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
             tpl.centerOfGravity.y = *((UINT16*)&buf[index]);
             index += sizeof(short);
 
+            std::cout << "tpl cordinate["<<j << "]" << tpl.noOfCordinates << std::endl;
             // 拷贝特征数据
 //            std::cout << "tpl no ofcoordinate: " << tpl.noOfCordinates << std::endl;
             for (std::size_t i = 0; i < tpl.noOfCordinates; ++i) {
@@ -349,6 +350,7 @@ static int unpack_template(Koyo_Contour_Template_Runtime_Param &koyo_contour_tem
                 short c = *((short*)&buf[index]);
                 index += sizeof(short);
 
+                std::cout << "r: " << r << " c: " << c << std::endl;
                 cv::Mat m;
                 m.create(r, c, CV_32S);
                 memcpy(m.data, &buf[index], 4 * r * c);

@@ -36,7 +36,7 @@ void printHSV(cv::Mat hsvimage) {
     of.open("data//csc.txt");
     for (int i = 0; i < hsvimage.rows; ++i) {
         for (int j = 0; j < hsvimage.cols; ++j) {
-            auto hsvv =imgHSV.at<cv::Vec3b>(i,j);
+            auto hsvv =hsvimage.at<cv::Vec3b>(i,j);
             //printf("(%d,%d)H= %d,S = %d, V = %d\n",i,j,hsvv[0],hsvv[1],hsvv[2]);
             of<< "H: " << (int)hsvv[0] << " " << "S: " <<(int)hsvv[1] << " " << "V: " <<(int)hsvv[2] << " i: " << i << " " << "j: " << j << " " << std::endl;;
         }
@@ -60,6 +60,7 @@ int main( int argc, char** argv )
 #endif
 #if 1
     std::string filename(argv[1]);
+//    std::string filename("C:\\Users\\xianb\\Desktop\\test.yuv");
     unsigned char *buf = nullptr;
     if(filename.substr(filename.size() - 3, 3) == "yuv") {
         FILE *yuv_file = fopen(filename.c_str(), "rb+");
@@ -71,8 +72,11 @@ int main( int argc, char** argv )
 //    imgRGB.create(480, 640, CV_8UC3);
     cv::cvtColor(imgYUV, imgRGB, CV_YUV420sp2BGR, 3);
     cv::cvtColor(imgRGB, imgHSV, CV_BGR2HSV_FULL, 3);
+    printHSV(imgHSV);
 //
-//    printHSV(imgHSV);
+ 	cvNamedWindow( "imgRGB", 2);
+	cvSetMouseCallback( "imgRGB", on_mouse, 0 );
+	cv::imshow( "imgRGB", imgRGB);
 //    cvNamedWindow("imgRGB1", 2);
 //    cvSetMouseCallback("imgRGB1", on_mouse, 0 );
 //    cv::imshow( "imgRGB1", imgRGB );

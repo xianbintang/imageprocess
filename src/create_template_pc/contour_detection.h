@@ -12,8 +12,8 @@
 #include <opencv2/core/mat.hpp>
 #include <memory>
 
-const int MAX_NUM_PYRAMID = 7;
-const int MIN_NUM_PYRAMID = 5;
+const int MAX_NUM_PYRAMID = 4;
+const int MIN_NUM_PYRAMID = 3;
 const int MAX_DEGREE = 360;
 using UINT16 = unsigned short;
 using INT8 = signed char;
