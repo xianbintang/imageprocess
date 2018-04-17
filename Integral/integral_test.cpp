@@ -16,7 +16,7 @@ using namespace cv;
 
 const int BLOCKH = 8;
 const int BLOCKW = 8;
-const int NBLOCK = 10;
+const int NBLOCK = 5;
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
@@ -291,7 +291,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     cv::Mat origin_target = target;
     TimeTracker tt;
     int totalTime = 0;
-    for (double d = 0; (int)d < 1; d += 1) {
+    for (double d = 0; (int)d < 360; d += 1) {
         src = origin_src;
         cv::Mat rotated_image;
         // 还是无法保证完全在图片框内
@@ -343,15 +343,15 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             for (int j = 0; j < src.cols; j += BLOCKW) {
                 Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
                 int sum = getCurrentSum(integ, A, D, 0);
-                if(sum > 450 && sum < 520) {
+                if(sum > 200 && sum < 260 ) {
                     // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                     // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
 
 //                    for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
-                    int rg = 10;
+                    int rg = 2;
                     for (int rangei = -rg; rangei < rg; ++rangei) {
                         for (int rangej = -rg; rangej < rg; ++rangej) {
-                            Point pos = Point(j/patternSize + rangej, i/patternSize + rangei);
+                            Point pos = Point(j/4+ rangej, i/4+ rangei);
                             if(pos.x < 0) {
                                 pos.x = 1;
                             }
@@ -362,7 +362,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //                        cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
 //                        cv::imshow("tmpX", colorImg4);
 //                        cv::waitKey(0);
-                            if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.45)) {
+                            if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65)) {
 //                            cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
 //                                cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
 //                                cv::imshow("tmpX", colorImg4);
@@ -370,7 +370,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 
                                 // pos是目标位置，从目标位置进       行扩展
 //                            std::cout << "pos: " << pos << std::endl;
-                                int rg = 10;
+                                int rg = 2;
                                 for (int m = -rg; m < rg; ++m) {
                                     for (int n = -rg; n < rg; ++n) {
                                         Point pos1 = Point(pos.x * 2 + n, pos.y * 2 + m);
@@ -384,7 +384,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //                                        if(A.x == 96 && A.y == 96) {
 //                                            std::cout << "pos1: " << pos1 << std::endl;
 //                                        }
-                                        if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.40)) {
+                                        if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.80)) {
                                             region.push_back(cv::Point(pos1.x * 2, pos1.y * 2));
                                             ct++;
                                         }
@@ -410,7 +410,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
             cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
             cv::imshow("colorImg", colorImg);
-            cv::waitKey(10);
+            cv::waitKey(50);
 //        }
         }
 //    std::cout << "targets: " << ct << " degree: " << d << std::endl;
