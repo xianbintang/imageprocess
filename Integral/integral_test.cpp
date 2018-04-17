@@ -16,7 +16,7 @@ using namespace cv;
 
 const int BLOCKH = 8;
 const int BLOCKW = 8;
-const int NBLOCK = 5;
+const int NBLOCK = 8;
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
@@ -187,6 +187,9 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     int ct = 0;
     int ctnozero = 0;
 
+
+    TimeTracker tt;
+    tt.start();
     for (int i = 0; i < targetPattern.rows; ++i) {
         for (int j = 0; j < targetPattern.cols; ++j) {
             int targetCount;
@@ -207,7 +210,7 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
             }
             srcCount = srcPattern.at<int>(A.y, A.x);
 
-//            if(thresh > 0.4 && position.x == 47 && position.y == 47) {
+//            if(thresh > 0.78 && position.x == 47 && position.y == 47) {
 //                cv::Mat tm = colorImg2;
 //                cv::rectangle(tm, A,  cv::Point(A.x, A.y),  cv::Scalar(255,255,255));
 //                cv::imshow("tmp", tm);
@@ -238,7 +241,8 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
 ////                        std::cout << "bad***** " << std::endl;;
 //                    }
 //                }
-//                std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] " << std::endl;;
+//                if(thresh > 0.78)
+//                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] " << std::endl;;
                 if(abs(srcCount - targetCount) <= threshold) {
                     ct++;
                 }
@@ -251,6 +255,8 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
 //        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << "threshold: " << thresh << std::endl;
 //        std::cout << "position: " << position << "score: " << std::endl;
     }
+    tt.stop();
+//    std::cout << "compare time: " << tt.duration() << std::endl;
     return 1.0 * ct / ctnozero> thresh;
 }
 
@@ -291,7 +297,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     cv::Mat origin_target = target;
     TimeTracker tt;
     int totalTime = 0;
-    for (double d = 0; (int)d < 360; d += 1) {
+    for (double d = 0; (int)d <= 360; d += 4) {
         src = origin_src;
         cv::Mat rotated_image;
         // 还是无法保证完全在图片框内
@@ -343,7 +349,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             for (int j = 0; j < src.cols; j += BLOCKW) {
                 Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
                 int sum = getCurrentSum(integ, A, D, 0);
-                if(sum > 200 && sum < 260 ) {
+                if(sum > 400 && sum < 460) {
                     // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                     // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
 
@@ -361,7 +367,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //                        cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
 //                        cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
 //                        cv::imshow("tmpX", colorImg4);
-//                        cv::waitKey(0);
+//                        cv::waitKey(5);
                             if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65)) {
 //                            cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
 //                                cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
@@ -410,7 +416,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
             cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
             cv::imshow("colorImg", colorImg);
-            cv::waitKey(50);
+            cv::waitKey(10);
 //        }
         }
 //    std::cout << "targets: " << ct << " degree: " << d << std::endl;
