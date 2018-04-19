@@ -16,7 +16,7 @@ using namespace cv;
 
 const int BLOCKH = 8;
 const int BLOCKW = 8;
-const int NBLOCK = 8;
+const int NBLOCK = 5;
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
@@ -436,7 +436,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         for (int j = 0; j < src.cols; j += BLOCKW) {
             Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > 1300&& sum < 1600) {
+            if(sum > 600&& sum < 800) {
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
 
