@@ -16,7 +16,7 @@ using namespace cv;
 
 int BLOCKH = 8;
 int BLOCKW = 8;
-int NBLOCK = 8;
+int NBLOCK = 5;
 
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
@@ -267,6 +267,7 @@ cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_
 }
 
 // TODO 加上提前停止策略
+long long ct_time_complex = 0;
 int threshold_arr[100] = {1, 1, 2, 2, 3, 3,3,4,4,5,5, 6, 6, 8, 8, 8, 8, 8};
 bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh, const vector<cv::Point> &points_pos)
 {
@@ -280,6 +281,7 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     for (int k = 0; k < points_pos.size(); ++k) {
         int i = points_pos[k].x;
         int j = points_pos[k].y;
+        ct_time_complex++;
 
         targetCount = targetPattern.at<int>(i, j);
         cv::Point A(j + position.x, i + position.y);
@@ -420,6 +422,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 
     std::cout << " sum: " << template_points_num << std::endl;
 
+    int ct_pass_filter_one = 0;
     std::vector<Point> region;
     tt.start();
     int half_size = BLOCKW * NBLOCK / 2;
@@ -439,7 +442,8 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 D.y = integ.rows - 1;
             }
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > template_points_num * 0.85 && sum < template_points_num * 1.15) {
+            if(sum > template_points_num * 0.90 && sum < template_points_num * 1.10) {
+                ct_pass_filter_one++;
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
                 Point pos = Point(j/4, i/4);
@@ -478,6 +482,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //    cv::imshow("tobe", tobe);
     }
 
+
     tt.stop();
     totalTime += tt.duration();
     for (int i = 0; i < region.size(); ++i) {
@@ -492,6 +497,8 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     }
     std::cout << "duration: " << tt.duration() << std::endl;
     std::cout << "total: " << ct << "time: " << totalTime << std::endl;
+    std::cout << "pass filter one: " << ct_pass_filter_one << std::endl;
+    std::cout << "time complex: " << ct_time_complex << std::endl;
 }
 
 int main(int argc, char **argv)
