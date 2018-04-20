@@ -14,9 +14,10 @@ const int HEIGHT = 480;
 using namespace std;
 using namespace cv;
 
-const int BLOCKH = 8;
-const int BLOCKW = 8;
-const int NBLOCK = 5;
+int BLOCKH = 8;
+int BLOCKW = 8;
+int NBLOCK = 8;
+
 void saveMat(cv::Mat mat, const char *path);
 void saveMatf(cv::Mat mat, const char *path);
 
@@ -63,22 +64,22 @@ static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16
 inline int getCurrentSum(const Mat &integral, Point &posA, Point &posD, int size)
 {
     int A = 0, B = 0, C = 0, D = 0;
-    if(posD.x >= integral.cols) {
-        posD.x = integral.cols - 1;
-    }
-
-    if(posD.y >= integral.rows) {
-        posD.y = integral.rows - 1 ;
-    }
-    if(posA.y < integral.rows && posA.x < integral.cols && posD.y < integral.rows && posD.x < integral.cols) {
+//    if(posD.x >= integral.cols) {
+//        posD.x = integral.cols - 1;
+//    }
+//
+//    if(posD.y >= integral.rows) {
+//        posD.y = integral.rows - 1 ;
+//    }
+//    if(posA.y < integral.rows && posA.x < integral.cols && posD.y < integral.rows && posD.x < integral.cols) {
         A = integral.at<int>(posA.y, posA.x);
         B = integral.at<int>(posA.y, posD.x);
         C = integral.at<int>(posD.y, posA.x);
         D = integral.at<int>(posD.y, posD.x);
-    } else {
+//    } else {
 //        std::cout << "out of border" << std::endl;
-        std::cout << "out of boarder: " << __LINE__ << std::endl;
-    }
+//        std::cout << "out of boarder: " << __LINE__ << std::endl;
+//    }
 
 //    std::cout << posA << " " << posD << " ";
     int sum = (A + D - B - C) / 255;
@@ -252,33 +253,28 @@ cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_
     Dilation(imgCanny, imgCanny, 3);
 //    cv::imshow("canny", imgCanny);
 //    cv::waitKey(0);
-    std::cout << "after canny: " << computePointsChar(imgCanny) / 255 << std::endl;;
+//    std::cout << "after canny: " << computePointsChar(imgCanny) / 255 << std::endl;;
     cv::Mat integ;
     cv::integral(imgCanny, integ,CV_32S); //计算积分图
 
     return integ;
 }
 
+// TODO 加上提前停止策略
+int threshold_arr[100] = {1, 1, 2, 2, 3, 3,3,4,4,5,5, 6, 6, 8, 8, 8, 8, 8};
 bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh)
 {
     int ct = 0;
     int ctnozero = 0;
-
 
     TimeTracker tt;
     tt.start();
     for (int i = 0; i < targetPattern.rows; ++i) {
         for (int j = 0; j < targetPattern.cols; ++j) {
             int targetCount;
-
-            if(i < targetPattern.rows && j < targetPattern.cols) {
-                targetCount = targetPattern.at<int>(i, j);
-            } else{
-//                std::cout << "out of boarder" << std::endl;
-                std::cout << "out of boarder: " << __LINE__ << std::endl;
-            }
-
             int srcCount;
+
+            targetCount = targetPattern.at<int>(i, j);
             cv::Point A(j + position.x, i + position.y);
 
             if(A.y >= srcPattern.rows && A.y >= srcPattern.cols) {
@@ -287,40 +283,17 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
             }
             srcCount = srcPattern.at<int>(A.y, A.x);
 
-//            if(thresh > 0.78 && position.x == 47 && position.y == 47) {
-//                cv::Mat tm = colorImg2;
-//                cv::rectangle(tm, A,  cv::Point(A.x, A.y),  cv::Scalar(255,255,255));
-//                cv::imshow("tmp", tm);
-//                cv::waitKey(-1);
-//            }
-
             int threshold = 1;
 
+//            std::cout << "target: count" << targetCount << std::endl;
             if(targetCount) {
                 ctnozero++;
-                if(targetCount > 20) {
-                    threshold = targetCount * 0.2;
-                } else if (targetCount > 10){
-                    threshold = targetCount / 3;
-                } else if (targetCount > 5){
-                    threshold = targetCount / 2;
-                } else if(targetCount > 3){
-                    threshold = targetCount - 2;
-                }
-                if(targetCount == 3)
-                    threshold = 2;
 
-//                if(position.x == 6 && position.y == 6) {
-////                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] ";
-//                    if(abs(srcCount - targetCount) <= threshold) {
-////                        std::cout << "ok------ " << std::endl;;
-//                    } else {
-////                        std::cout << "bad***** " << std::endl;;
-//                    }
-//                }
-//                if(thresh > 0.78)
-//                    std::cout << "[" <<targetCount << ", " << srcCount << ", " <<  threshold <<  "] " << std::endl;;
-                if(abs(srcCount - targetCount) <= threshold) {
+                if(targetCount >= 0 && targetCount < 16) {
+                    threshold = threshold_arr[targetCount];
+                }
+
+                if (abs(srcCount - targetCount) <= threshold) {
                     ct++;
                 }
             }
@@ -328,10 +301,7 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     }
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
 //    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
-    if(1.0 * ct / ctnozero> thresh) {
-//        std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << "threshold: " << thresh << std::endl;
-//        std::cout << "position: " << position << "score: " << std::endl;
-    }
+
     tt.stop();
 //    std::cout << "compare time: " << tt.duration() << std::endl;
     return 1.0 * ct / ctnozero> thresh;
@@ -392,15 +362,19 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     cv::pyrDown(colorImg, colorImg2);
     cv::pyrDown(colorImg2, colorImg4);
 
-    tt.start();
     int ct = 0;
     Mat template_integs[360][3];
+    long long template_points_num = 0;
+    int avg_height = 0;
+    int avg_width = 0;
     for (int i = 0; i < 360; ++i) {
         target = origin_target;
         cv::Mat rotated_image;
         // 还是无法保证完全在图片框内
         auto rotate_matrix = rotate_image(target, rotated_image, cv::Point(target.rows / 2, target.cols / 2), i);
         target = rotated_image;
+        avg_height += target.rows;
+        avg_width += target.cols;
 
         //        target = origin_target;
         //                    imshow("tar", target);
@@ -427,88 +401,70 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         template_integs[i][0] = templatePattern8;
         template_integs[i][1] = templatePattern4;
         template_integs[i][2] = templatePattern2;
+        template_points_num += tobe.at<int>(tobe.rows - 1, tobe.cols - 1) / 255;
 //        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
     }
+    template_points_num /= 360;
+    std::cout << avg_height / 360 << "  " << avg_width / 360 << std::endl;
+
+    std::cout << " sum: " << template_points_num << std::endl;
 
     std::vector<Point> region;
-    for (int i = 0; i < src.rows; i += BLOCKH) {
-        for (int j = 0; j < src.cols; j += BLOCKW) {
-            Point A = Point(j, i), D = Point(j + NBLOCK * BLOCKW, i + NBLOCK * BLOCKH);
+    tt.start();
+    int half_size = BLOCKW * NBLOCK / 2;
+    for (int i = 0; i < src.rows; i += 4) {
+        for (int j = 0; j < src.cols; j += 4) {
+            Point A = Point(j - half_size, i - half_size), D = Point(j + half_size, i + half_size);
+            if(A.x <= 0) {
+                A.x = 1;
+            }
+            if(A.y <= 0) {
+                A.y = 1;
+            }
+            if(D.x >= integ.cols) {
+                D.x = integ.cols - 1;
+            }
+            if(D.y >= integ.rows) {
+                D.y = integ.rows - 1;
+            }
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > 600&& sum < 800) {
+            if(sum > template_points_num * 0.85 && sum < template_points_num * 1.15) {
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
-
+                Point pos = Point(j/4, i/4);
+                pos.x -= BLOCKW * NBLOCK / 4 / 2;
+                pos.y -= BLOCKH * NBLOCK / 4 / 2;
+                if(pos.x < 0) {
+                    pos.x = 1;
+                }
+                if(pos.y < 0) {
+                    pos.y = 1;
+                }
                 // 在这里旋转角度
-                for (int d = 0; (int)d < 360; d += 1) {
-#if 0
-                    src = origin_src;
-                    cv::Mat rotated_image;
-                    // 还是无法保证完全在图片框内
-                    auto rotate_matrix = rotate_image(src, rotated_image, cv::Point(src.rows / 2, src.cols / 2), d);
-                    src = rotated_image;
-#endif
-
-                    auto &templatePattern8 = template_integs[d][0];
+                for (int d = 0; (int)d < 360; d += 3) {
+//                    auto &templatePattern8 = template_integs[d][0];
                     auto &templatePattern4 = template_integs[d][1];
-                    auto &templatePattern2 = template_integs[d][2];
-
+//                    auto &templatePattern2 = template_integs[d][2];
                     // 计算图片的pattern
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65)) {
 
-//                    for (int k = -BLOCKW / patternSize; k < BLOCKW / patternSize; ++k) {
-                    int rg = 4;
-                    for (int rangei = -rg; rangei <= rg; rangei += 1) {
-                        for (int rangej = -rg; rangej <= rg; rangej += 1) {
-                            Point pos = Point(j/4+ rangej, i/4+ rangei);
-                            if(pos.x < 0) {
-                                pos.x = 1;
-                            }
-                            if(pos.y < 0) {
-                                pos.y = 1;
-                            }
-//                        cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
-//                        cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
-//                        cv::imshow("tmpX", colorImg4);
-//                        cv::waitKey(5);
-                            if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.70)) {
-//                            cv::rectangle(colorImg4, pos,  cv::Point(pos.x + NBLOCK * BLOCKW / 16, pos.y + NBLOCK * BLOCKW/ 16),  cv::Scalar(255,255,255));
-//                                cv::circle(colorImg4, pos, 1, cv::Scalar(255,255,255));
-//                                cv::imshow("tmpX", colorImg4);
-//                                cv::waitKey(0);
-
-                                // pos是目标位置，从目标位置进       行扩展
-//                            std::cout << "pos: " << pos << std::endl;
-                                int rg = 4;
-                                for (int m = -rg; m <= rg; m += 1) {
-                                    for (int n = -rg; n <= rg; n += 1) {
-                                        Point pos1 = Point(pos.x * 2 + n, pos.y * 2 + m);
-                                        if(pos1.x < 0) {
-                                            pos1.x = 1;
-                                        }
-                                        if(pos1.y < 0) {
-                                            pos1.y = 1;
-                                        }
-//                                std::cout << "pos1: " << pos1 << std::endl;
-//                                        if(A.x == 96 && A.y == 96) {
-//                                            std::cout << "pos1: " << pos1 << std::endl;
-//                                        }
-                                        if(compareSumPattern(srcPattern2, templatePattern2, pos1, 0.80)) {
-                                            region.push_back(cv::Point(pos1.x * 2, pos1.y * 2));
-                                            ct++;
-                                            std::cout << "degree: " << d << std::endl;
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-
+#if 1
+//                      std::cout << "pos: " << pos << std::endl;
+                        region.push_back(cv::Point(pos.x * 4, pos.y * 4));
+                        ct++;
+                        std::cout << "[" << pos.x * 4 << ","  << pos.y * 4 << "]" <<  "degree: " << d << std::endl;
+//                        cv::rectangle(colorImg, cv::Point(pos.x * 4, pos.y * 4),  cv::Point(pos.x * 4 + NBLOCK * BLOCKW, pos.y * 4+ NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
+//                        cv::imshow("colorImg", colorImg);
+//                        cv::waitKey(0);
+#endif
                     }
+
                 }
 
-//            std::cout << sum << " ";
             }
+
+//            std::cout << sum << " ";
         }
 
 //    std::cout << "targets: " << ct << " degree: " << d << std::endl;
