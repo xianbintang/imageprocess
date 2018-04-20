@@ -117,6 +117,12 @@ Mat CreateIntegralSum(const Mat &mat, Point &start, Point &end, int patternSize)
         {
             /* Point 是(x, y)而不是(y, x)*/
             Point A = Point(start.x + j * patternSize, start.y + i * patternSize), D = Point(start.x + (j + 1) * patternSize, start.y + (i + 1) * patternSize);
+            if(D.x >= mat.cols) {
+                D.x = mat.cols - 1;
+            }
+            if(D.y >= mat.rows) {
+                D.y = mat.rows - 1;
+            }
             auto curSum = getCurrentSum(mat, A, D , 0);
             if(i < sumPattern.rows && j < sumPattern.cols) {
                 sumPattern.at<int>(i, j) = curSum;
@@ -262,49 +268,43 @@ cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_
 
 // TODO 加上提前停止策略
 int threshold_arr[100] = {1, 1, 2, 2, 3, 3,3,4,4,5,5, 6, 6, 8, 8, 8, 8, 8};
-bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh)
+bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh, const vector<cv::Point> &points_pos)
 {
     int ct = 0;
-    int ctnozero = 0;
+    int targetCount;
+    int srcCount;
+    int threshold = 1;
 
     TimeTracker tt;
     tt.start();
-    for (int i = 0; i < targetPattern.rows; ++i) {
-        for (int j = 0; j < targetPattern.cols; ++j) {
-            int targetCount;
-            int srcCount;
+    for (int k = 0; k < points_pos.size(); ++k) {
+        int i = points_pos[k].x;
+        int j = points_pos[k].y;
 
-            targetCount = targetPattern.at<int>(i, j);
-            cv::Point A(j + position.x, i + position.y);
+        targetCount = targetPattern.at<int>(i, j);
+        cv::Point A(j + position.x, i + position.y);
 
-            if(A.y >= srcPattern.rows && A.y >= srcPattern.cols) {
-                A.y = srcPattern.rows - 1;
-                A.x = srcPattern.cols - 1;
-            }
-            srcCount = srcPattern.at<int>(A.y, A.x);
-
-            int threshold = 1;
-
-//            std::cout << "target: count" << targetCount << std::endl;
-            if(targetCount) {
-                ctnozero++;
-
-                if(targetCount >= 0 && targetCount < 16) {
-                    threshold = threshold_arr[targetCount];
-                }
-
-                if (abs(srcCount - targetCount) <= threshold) {
-                    ct++;
-                }
-            }
+        if(A.y >= srcPattern.rows || A.y >= srcPattern.cols) {
+            A.y = srcPattern.rows - 1;
+            A.x = srcPattern.cols - 1;
+        }
+        srcCount = srcPattern.at<int>(A.y, A.x);
+        if(targetCount >= 0 && targetCount < 16) {
+            threshold = threshold_arr[targetCount];
+        }
+        if (abs(srcCount - targetCount) <= threshold) {
+            ct++;
         }
     }
+
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
-//    std::cout << "score: " << 1.0 * ct / ctnozero << "ct: " << ct << "ctnozero: " << ctnozero << std::endl;
+    double score = 1.0 * ct / points_pos.size();
+    if(score > thresh)
+        std::cout << "score: " << score << " ct: " << ct << " ctnozero: " << points_pos.size() << std::endl;
 
     tt.stop();
 //    std::cout << "compare time: " << tt.duration() << std::endl;
-    return 1.0 * ct / ctnozero> thresh;
+    return score > thresh;
 }
 
 
@@ -367,6 +367,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     long long template_points_num = 0;
     int avg_height = 0;
     int avg_width = 0;
+    vector<vector<cv::Point>> points_pos(360, {cv::Point(0,0)});
     for (int i = 0; i < 360; ++i) {
         target = origin_target;
         cv::Mat rotated_image;
@@ -376,12 +377,12 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         avg_height += target.rows;
         avg_width += target.cols;
 
-        //        target = origin_target;
-        //                    imshow("tar", target);
-        //                    waitKey(0);
-        //        imshow("sar", src);
-        //        rotate_image(target, rotated_image, cv::Point(target.rows / 2, target.cols / 2), d);
-        //        imshow("rotar", rotated_image);
+ //        target = origin_target;
+ //        imshow("tar", target);
+ //        waitKey(0);
+ //        imshow("sar", src);
+ //        rotate_image(target, rotated_image, cv::Point(target.rows / 2, target.cols / 2), d);
+ //        imshow("rotar", rotated_image);
 
         colorImg = src;
         // 返回指向需要被发送的内存缓冲区的指针
@@ -404,6 +405,15 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         template_points_num += tobe.at<int>(tobe.rows - 1, tobe.cols - 1) / 255;
 //        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
+        // 记录每个模板的每个非零点的位置
+        for (int j = 0; j < templatePattern4.rows; ++j) {
+            for (int k = 0; k < templatePattern4.cols; ++k) {
+                int targetCount = templatePattern4.at<int>(j, k);
+                if(targetCount > 0) {
+                    points_pos[i].push_back({j, k});
+                }
+            }
+        }
     }
     template_points_num /= 360;
     std::cout << avg_height / 360 << "  " << avg_width / 360 << std::endl;
@@ -443,13 +453,10 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 }
                 // 在这里旋转角度
                 for (int d = 0; (int)d < 360; d += 3) {
-//                    auto &templatePattern8 = template_integs[d][0];
                     auto &templatePattern4 = template_integs[d][1];
-//                    auto &templatePattern2 = template_integs[d][2];
                     // 计算图片的pattern
-                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65)) {
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.7, points_pos[d])) {
 
-#if 1
 //                      std::cout << "pos: " << pos << std::endl;
                         region.push_back(cv::Point(pos.x * 4, pos.y * 4));
                         ct++;
@@ -457,7 +464,6 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //                        cv::rectangle(colorImg, cv::Point(pos.x * 4, pos.y * 4),  cv::Point(pos.x * 4 + NBLOCK * BLOCKW, pos.y * 4+ NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
 //                        cv::imshow("colorImg", colorImg);
 //                        cv::waitKey(0);
-#endif
                     }
 
                 }
