@@ -7,12 +7,24 @@
 #include <windef.h>
 #include <fstream>
 #include <c++/iostream>
+#include <set>
 #include "TimeTracker.h"
+
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
 using namespace std;
 using namespace cv;
+
+
+typedef struct __Candidate{
+    Point position;
+    INT16 angel_idx;
+    UINT8 level;
+    float score;
+}CandidateResult;
+
+
 
 int BLOCKH = 8;
 int BLOCKW = 8;
@@ -24,6 +36,10 @@ void saveMatf(cv::Mat mat, const char *path);
 cv::Mat colorImg;
 cv::Mat colorImg4;
 cv::Mat colorImg2;
+unsigned short calWidth(unsigned short width, unsigned char align)
+{
+    return (width + (align - width % align) % align);
+}
 void saveMat(const cv::Mat mat, const char *path) {
     FILE *fp = fopen(path, "w");
     int i,j;
@@ -269,7 +285,8 @@ cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_
 // TODO 加上提前停止策略
 long long ct_time_complex = 0;
 int threshold_arr[100] = {1, 1, 2, 2, 3, 3,3,4,4,5,5, 6, 6, 8, 8, 8, 8, 8};
-bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, const cv::Point position, double thresh, const vector<cv::Point> &points_pos)
+bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, \
+const cv::Point position, double thresh, const vector<cv::Point> &points_pos, float &result_score)
 {
     int ct = 0;
     int targetCount;
@@ -300,9 +317,10 @@ bool compareSumPattern(const cv::Mat &srcPattern, const cv::Mat &targetPattern, 
     }
 
 //    std::cout << "compareSumPattern: " << ct << " " << ctnozero << std::endl;
-    double score = 1.0 * ct / points_pos.size();
-    if(score > thresh)
-        std::cout << "score: " << score << " ct: " << ct << " ctnozero: " << points_pos.size() << std::endl;
+    float score = 1.0 * ct / points_pos.size();
+//    if(score > thresh)
+//        std::cout << "score: " << score << " ct: " << ct << " ctnozero: " << points_pos.size() << std::endl;
+    result_score = score;
 
     tt.stop();
 //    std::cout << "compare time: " << tt.duration() << std::endl;
@@ -339,8 +357,111 @@ static std::vector<float> rotate_image(const cv::Mat &src, cv::Mat &dst, cv::Poi
     rotate_matrix.push_back(map[5]);
     return rotate_matrix;
 }
+
+bool checkInSet(std::set<int> &visited, int x, int y, int d, int step)
+{
+    for (int i = -step; i <= step; i += 2) {
+        for (int j = -step; j <= step; j += 2) {
+            for (int k = -step; k <= step; k += 2) {
+                int xx = x + i;
+                int yy = y + i;
+                int dd = d + i;
+                int setNum = 0;
+                setNum |= (dd << 20);
+                setNum |= (xx << 10);
+                setNum |= yy;
+                if (visited.find(setNum) != visited.end()) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+int matchBottomLevel()
+{
+
+}
+
+// 传入的参数有：下一层的待匹配图像，下一层的模板图像，候选点和角度，在里面要进行去重处理，要进行compare处理，最后得到的是一系列候选点
+// 已经保证了点的位置和角度基本上都是精确的，传入到本函数的点都是相对精确的，所以只需要考虑去重即可。
+int matchMidLevel(const cv::Mat &src, const Mat *targets,\
+ const vector<CandidateResult> &candidates_in, const vector<vector<cv::Point>> &points_pos, vector<CandidateResult> &candidates_out,const float &thresh)
+{
+    std::set<int> visited;
+    vector<CandidateResult> candidate_expanded_unique;
+    // 去除的思路是什么？同角度的不重复，那角度挨着的就可以了吗？
+    // 相同角度相同位置的不再考虑，或者相邻角度相邻位置的不考虑，那么如何判断是否是相邻角度相邻位置？
+    // 必须加上相邻位置和角度不予处理的条件，否则角度和位置只是相差一点点的就会一直在里面重复
+    // 可以给角度和位置不同的权重
+    int step = 2;
+    int expand_range = 4;
+    for (int i = 0; i < candidates_in.size(); ++i) {
+        // 32位被分为 12 10 10 位，分别是 degree, x, y
+        CandidateResult candidate = candidates_in[i];
+        int degree = candidates_in[i].angel_idx;
+        int x = candidates_in[i].position.x << 1;
+        int y = candidates_in[i].position.y << 1;
+        for (int j = -expand_range; j <= expand_range; j += step) {
+            for (int k = -expand_range; k <= expand_range; k += step) {
+                for (int m = -expand_range; m < expand_range; m += step) {
+                    int dd = degree + j;
+                    int xx = x + k;
+                    int yy = y + m;
+                    // dd, xx 和yy的合法性判断
+                    if(dd >= 0 && dd < 360 && xx >= 0 && xx < src.cols && yy >= 0 && yy < src.rows) {
+                        int setNum = 0;
+                        setNum |= (dd << 20);
+                        setNum |= (xx << 10);
+                        setNum |= yy;
+                        if(checkInSet(visited, xx, yy, dd, 2)) {
+                            visited.insert(setNum);
+                            CandidateResult tmpCandidate;
+                            tmpCandidate.position = Point(xx, yy);
+                            tmpCandidate.angel_idx= dd;
+                            candidate_expanded_unique.push_back(tmpCandidate);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 验证一下visited和candidate_expand
+    // 现在candidate_expanded_unique中包含的是不重复的位置和角度的候选点了，下来可以在这个范围内进行二级筛选，最终得出通过该级后的candidate_out
+    vector<CandidateResult> candidate_tobe_filter;
+    for (int i = 0; i < candidate_expanded_unique.size(); ++i) {
+        CandidateResult candidate = candidate_expanded_unique[i];
+        int degree = candidate.angel_idx;
+        Point p = candidate.position;
+        float score = 0;
+        if(compareSumPattern(src, targets[degree], p, thresh, points_pos[degree], score)) {
+            CandidateResult tmp_candi;
+            tmp_candi.position = p;
+            tmp_candi.angel_idx = degree;
+            tmp_candi.score = score;
+            candidate_tobe_filter.push_back(tmp_candi);
+        }
+    }
+
+    // 通过分数和角度和位置进行筛选，保证candidate_out中没有很多重复的, 观察发现可以利用角度来去重，因为大部分聚集的都是在特定角度和范围内的重复
+    // 首先遍历角度，看看相邻角度附近有没有相邻的点，有的话只取一个，可以取平均值来算。
+    candidates_out = candidate_tobe_filter;
+    return 0;
+}
+
 int findTargetArea(cv::Mat &src, cv::Mat &target)
 {
+    int rows= calWidth(target.cols, 8);
+    int cols = calWidth(target.rows, 8);
+    if(rows > cols) {
+        NBLOCK = ceil(rows / 8.0);
+    } else {
+        NBLOCK = ceil(cols / 8.0);
+    }
+    std::cout << "NBLOCK: " << NBLOCK << " BLOCKW: " << BLOCKW << " BLOCKH: " << BLOCKH << std::endl;
+
     int total = 0;
     cv::Mat origin_src = src;
     cv::Mat origin_target = target;
@@ -365,11 +486,12 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     cv::pyrDown(colorImg2, colorImg4);
 
     int ct = 0;
-    Mat template_integs[360][3];
+    Mat template_integs[3][360];
     long long template_points_num = 0;
     int avg_height = 0;
     int avg_width = 0;
-    vector<vector<cv::Point>> points_pos(360, {cv::Point(0,0)});
+    vector<vector<cv::Point>> points_pos4(360, {cv::Point(0,0)});
+    vector<vector<cv::Point>> points_pos2(360, {cv::Point(0,0)});
     for (int i = 0; i < 360; ++i) {
         target = origin_target;
         cv::Mat rotated_image;
@@ -401,9 +523,9 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         auto templatePattern8 = CreateIntegralSum(tobe, A, D, 8);
         auto templatePattern4 = CreateIntegralSum(tobe, A, D, 4);
         auto templatePattern2 = CreateIntegralSum(tobe, A, D, 2);
-        template_integs[i][0] = templatePattern8;
-        template_integs[i][1] = templatePattern4;
-        template_integs[i][2] = templatePattern2;
+        template_integs[0][i] = templatePattern8;
+        template_integs[1][i] = templatePattern4;
+        template_integs[2][i] = templatePattern2;
         template_points_num += tobe.at<int>(tobe.rows - 1, tobe.cols - 1) / 255;
 //        std::cout << " ct: " << computePointsInt(templatePattern) << std::endl;
 
@@ -412,7 +534,15 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
             for (int k = 0; k < templatePattern4.cols; ++k) {
                 int targetCount = templatePattern4.at<int>(j, k);
                 if(targetCount > 0) {
-                    points_pos[i].push_back({j, k});
+                    points_pos4[i].push_back({j, k});
+                }
+            }
+        }
+        for (int j = 0; j < templatePattern2.rows; ++j) {
+            for (int k = 0; k < templatePattern2.cols; ++k) {
+                int targetCount = templatePattern2.at<int>(j, k);
+                if(targetCount > 0) {
+                    points_pos2[i].push_back({j, k});
                 }
             }
         }
@@ -423,7 +553,9 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     std::cout << " sum: " << template_points_num << std::endl;
 
     int ct_pass_filter_one = 0;
-    std::vector<Point> region;
+    int ct_pass_filter_two = 0;
+    int ct_pass_filter_three = 0;
+    std::vector<CandidateResult> candidates_top;
     tt.start();
     int half_size = BLOCKW * NBLOCK / 2;
     for (int i = 0; i < src.rows; i += 4) {
@@ -442,7 +574,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 D.y = integ.rows - 1;
             }
             int sum = getCurrentSum(integ, A, D, 0);
-            if(sum > template_points_num * 0.90 && sum < template_points_num * 1.10) {
+            if(sum > template_points_num * 0.85 && sum < template_points_num * 1.15) {
                 ct_pass_filter_one++;
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
@@ -456,18 +588,31 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     pos.y = 1;
                 }
                 // 在这里旋转角度
-                for (int d = 0; (int)d < 360; d += 3) {
-                    auto &templatePattern4 = template_integs[d][1];
+                for (int d = 0; (int)d < 360; d += 1) {
+                    auto &templatePattern4 = template_integs[1][d];
                     // 计算图片的pattern
-                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.7, points_pos[d])) {
-
-//                      std::cout << "pos: " << pos << std::endl;
-                        region.push_back(cv::Point(pos.x * 4, pos.y * 4));
-                        ct++;
-                        std::cout << "[" << pos.x * 4 << ","  << pos.y * 4 << "]" <<  "degree: " << d << std::endl;
+                    float score = 0;
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65, points_pos4[d], score)) {
+                        ct_pass_filter_two++;
+                        // 先在此做一次更精确一点点的去重，不做范围内搜索，但是能排除一些差异很大的
+                        auto &templatePattern2 = template_integs[2][d];
+                        Point tmpp(pos.x * 2, pos.y * 2);
+                        float tmpscore = 0.0;
+                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.65, points_pos2[d], tmpscore)) {
+                            ct_pass_filter_three++;
+                            std::cout << "tmpscore: " << tmpscore << "  score: " << score << std::endl;
+                            CandidateResult candidateResult;
+                            candidateResult.position = cv::Point(pos.x, pos.y);
+                            candidateResult.angel_idx = d;
+                            candidateResult.level = 3;
+                            candidateResult.score = score;
+                            candidates_top.push_back(candidateResult);
+                            ct++;
+//                            std::cout << "[" << pos.x * 4 << ","  << pos.y * 4 << "]" <<  "degree: " << d << std::endl;
 //                        cv::rectangle(colorImg, cv::Point(pos.x * 4, pos.y * 4),  cv::Point(pos.x * 4 + NBLOCK * BLOCKW, pos.y * 4+ NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
 //                        cv::imshow("colorImg", colorImg);
 //                        cv::waitKey(0);
+                        }
                     }
 
                 }
@@ -481,23 +626,35 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //    cv::imshow("integimg", integ);
 //    cv::imshow("tobe", tobe);
     }
-
+    float thresh = 0.80;
+    std::cout << "candidate_top size: " << candidates_top.size() << std::endl;
+    vector<CandidateResult> candidates_out;
+    matchMidLevel(srcPattern2,  template_integs[2], candidates_top, points_pos2, candidates_out, thresh);
+    std::cout << "candidate_out size: " << candidates_out.size() << std::endl;
+    // 这一层出来的精度已经很高了，考虑从里面找出分数高的几个，再在下一层做更精确的匹配,
+    // 但是分辨率低的时候还是会有部分重复的而且分相对较高的，除非把这里的阈值设高，但是设高了容易找不到
+    // 分辨率低的时候还是会有问题，顶层得到的不一定是很正的，而且这些到了下层以后的匹配照样会匹配到很高的分
+    // 可能还是需要用三级筛选进行一定的过滤
 
     tt.stop();
     totalTime += tt.duration();
-    for (int i = 0; i < region.size(); ++i) {
-//        cv::circle(colorImg, region[i], 1, cv::Scalar(0,0,255));
-//        if(abs(region[i].x - 32) < 3 && abs(region[i].y - 32) < 3) {
-        std::cout << region[i] << std::endl;
-        cv::circle(colorImg, cv::Point(region[i].x + NBLOCK * BLOCKW / 2, region[i].y + NBLOCK * BLOCKH / 2), 1, cv::Scalar(255,255,255));
-        cv::rectangle(colorImg, region[i],  cv::Point(region[i].x + NBLOCK * BLOCKW, region[i].y + NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
-        cv::imshow("colorImg", colorImg);
+    for (int i = 0; i < candidates_out.size(); ++i) {
+//        cv::circle(colorImg, candidates_top[i], 1, cv::Scalar(0,0,255));
+//        if(abs(candidates_top[i].x - 32) < 3 && abs(candidates_top[i].y - 32) < 3) {
+        CandidateResult candidate = candidates_out[i];
+        std::cout << "position: " << candidate.position << " degree: " << candidate.angel_idx << " score: " << candidate.score << std::endl;
+
+        cv::circle(colorImg2, cv::Point(candidate.position.x + NBLOCK * BLOCKW / 4, candidate.position.y + NBLOCK * BLOCKH / 4), 1, cv::Scalar(255,255,255));
+        cv::rectangle(colorImg2, candidate.position,  cv::Point(candidate.position.x + NBLOCK * BLOCKW/2, candidate.position.y + NBLOCK * BLOCKH/2),  cv::Scalar(255,255,255));
+        cv::imshow("colorImg", colorImg2);
         cv::waitKey(0);
 //        }
     }
     std::cout << "duration: " << tt.duration() << std::endl;
-    std::cout << "total: " << ct << "time: " << totalTime << std::endl;
+    std::cout << "total: " << candidates_out.size() << " time: " << totalTime << std::endl;
     std::cout << "pass filter one: " << ct_pass_filter_one << std::endl;
+    std::cout << "pass filter two: " << ct_pass_filter_two << std::endl;
+    std::cout << "pass filter three: " << ct_pass_filter_three << std::endl;
     std::cout << "time complex: " << ct_time_complex << std::endl;
 }
 
