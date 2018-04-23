@@ -395,7 +395,7 @@ int matchMidLevel(const cv::Mat &src, const Mat *targets,\
     // 相同角度相同位置的不再考虑，或者相邻角度相邻位置的不考虑，那么如何判断是否是相邻角度相邻位置？
     // 必须加上相邻位置和角度不予处理的条件，否则角度和位置只是相差一点点的就会一直在里面重复
     // 可以给角度和位置不同的权重
-    int step = 2;
+    int step = 1;
     int expand_range = 4;
     for (int i = 0; i < candidates_in.size(); ++i) {
         // 32位被分为 12 10 10 位，分别是 degree, x, y
@@ -403,6 +403,8 @@ int matchMidLevel(const cv::Mat &src, const Mat *targets,\
         int degree = candidates_in[i].angel_idx;
         int x = candidates_in[i].position.x << 1;
         int y = candidates_in[i].position.y << 1;
+        CandidateResult here_max;
+        here_max.score = -INT_MAX;
         for (int j = -expand_range; j <= expand_range; j += step) {
             for (int k = -expand_range; k <= expand_range; k += step) {
                 for (int m = -expand_range; m < expand_range; m += step) {
@@ -411,43 +413,89 @@ int matchMidLevel(const cv::Mat &src, const Mat *targets,\
                     int yy = y + m;
                     // dd, xx 和yy的合法性判断
                     if(dd >= 0 && dd < 360 && xx >= 0 && xx < src.cols && yy >= 0 && yy < src.rows) {
-                        int setNum = 0;
-                        setNum |= (dd << 20);
-                        setNum |= (xx << 10);
-                        setNum |= yy;
-                        if(checkInSet(visited, xx, yy, dd, 2)) {
-                            visited.insert(setNum);
-                            CandidateResult tmpCandidate;
-                            tmpCandidate.position = Point(xx, yy);
-                            tmpCandidate.angel_idx= dd;
-                            candidate_expanded_unique.push_back(tmpCandidate);
+//                        int setNum = 0;
+//                        setNum |= (dd << 20);
+//                        setNum |= (xx << 10);
+//                        setNum |= yy;
+                        // 从expand的中心，找到最高分的那个位置，来作为新的代表，这样保证out不会大于out
+//                        if(checkInSet(visited, xx, yy, dd, 1)) {
+//                            visited.insert(setNum);
+                        CandidateResult tmpCandidate;
+                        tmpCandidate.position = Point(xx, yy);
+                        tmpCandidate.angel_idx= dd;
+
+                        float score = 0;
+                        if(compareSumPattern(src, targets[dd], tmpCandidate.position, thresh, points_pos[dd], score) && score > here_max.score) {
+                            here_max = tmpCandidate;
+                            here_max.score = score;
                         }
+//                        }
                     }
                 }
             }
         }
+        if(here_max.score >= 0) {
+            candidate_expanded_unique.push_back(here_max);
+        }
     }
+    candidates_out = candidate_expanded_unique;
 
     // 验证一下visited和candidate_expand
     // 现在candidate_expanded_unique中包含的是不重复的位置和角度的候选点了，下来可以在这个范围内进行二级筛选，最终得出通过该级后的candidate_out
-    vector<CandidateResult> candidate_tobe_filter;
-    for (int i = 0; i < candidate_expanded_unique.size(); ++i) {
-        CandidateResult candidate = candidate_expanded_unique[i];
-        int degree = candidate.angel_idx;
-        Point p = candidate.position;
-        float score = 0;
-        if(compareSumPattern(src, targets[degree], p, thresh, points_pos[degree], score)) {
-            CandidateResult tmp_candi;
-            tmp_candi.position = p;
-            tmp_candi.angel_idx = degree;
-            tmp_candi.score = score;
-            candidate_tobe_filter.push_back(tmp_candi);
-        }
-    }
+//    vector<CandidateResult> candidate_tobe_filter;
+//    for (int i = 0; i < candidate_expanded_unique.size(); ++i) {
+//        CandidateResult candidate = candidate_expanded_unique[i];
+//        int degree = candidate.angel_idx;
+//        Point p = candidate.position;
+//        float score = 0;
+//        if(compareSumPattern(src, targets[degree], p, thresh, points_pos[degree], score)) {
+//            CandidateResult tmp_candi;
+//            tmp_candi.position = p;
+//            tmp_candi.angel_idx = degree;
+//            tmp_candi.score = score;
+//            candidate_tobe_filter.push_back(tmp_candi);
+//        }
+//    }
 
     // 通过分数和角度和位置进行筛选，保证candidate_out中没有很多重复的, 观察发现可以利用角度来去重，因为大部分聚集的都是在特定角度和范围内的重复
     // 首先遍历角度，看看相邻角度附近有没有相邻的点，有的话只取一个，可以取平均值来算。
-    candidates_out = candidate_tobe_filter;
+    // 先遍历一遍，找出出现频率最高的角度范围，范围大小可以稍微大一些。
+    // 比如8个角度一个，同时计算这些范围内的平均分,聚集里的重心的位置，平均角度， 出现次数。 相当于通过角度来做聚类
+    // 测试了这种过滤方法会把差的很大的角度相近的好的位置平均成大量的不合格的位置
+
+//    std::set<CandidateResult> filter_set;
+//    int range_size = 3;
+//
+//    int angle_hist[360/range_size] = {0};
+//    int x_hist[360/range_size] = {0};
+//    int y_hist[360/range_size] = {0};
+//    int times_hist[360/range_size] = {0};
+//    double score_hist[360/range_size] = {0};
+//
+//    for (int i = 0; i < candidate_tobe_filter.size(); ++i) {
+//        CandidateResult tmp_candi = candidate_tobe_filter[i];
+//        int index = tmp_candi.angel_idx / range_size;
+//
+//        times_hist[index]++;
+//        angle_hist[index] += tmp_candi.angel_idx;
+//        x_hist[index] += tmp_candi.position.x;
+//        y_hist[index] += tmp_candi.position.y;
+//        score_hist[index] += tmp_candi.score;
+//    }
+//    for (int i = 0; i < 360 / range_size; ++i) {
+//        int times = times_hist[i];
+//        if(times >= 3 && score_hist[i] / times >= thresh) {
+//            CandidateResult tmp_candi;
+//            tmp_candi.position.x = x_hist[i] / times;
+//            tmp_candi.position.y = y_hist[i] / times;
+//            tmp_candi.score = score_hist[i] / times;
+//            tmp_candi.angel_idx = angle_hist[i] / times;
+//            candidates_out.push_back(tmp_candi);
+//            std::cout << "times: " << times << " position: " << tmp_candi.position << " angle: " << tmp_candi.angel_idx << std::endl;
+//        }
+//    }
+
+//    candidates_out = candidate_tobe_filter;
     return 0;
 }
 
@@ -592,15 +640,15 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     auto &templatePattern4 = template_integs[1][d];
                     // 计算图片的pattern
                     float score = 0;
-                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65, points_pos4[d], score)) {
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.70, points_pos4[d], score)) {
                         ct_pass_filter_two++;
                         // 先在此做一次更精确一点点的去重，不做范围内搜索，但是能排除一些差异很大的
                         auto &templatePattern2 = template_integs[2][d];
                         Point tmpp(pos.x * 2, pos.y * 2);
                         float tmpscore = 0.0;
-                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.65, points_pos2[d], tmpscore)) {
+                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.70, points_pos2[d], tmpscore)) {
                             ct_pass_filter_three++;
-                            std::cout << "tmpscore: " << tmpscore << "  score: " << score << std::endl;
+                            std::cout << pos << "tmpscore: " << tmpscore << "  score: " << score << "degree: " << d << std::endl;
                             CandidateResult candidateResult;
                             candidateResult.position = cv::Point(pos.x, pos.y);
                             candidateResult.angel_idx = d;
@@ -626,7 +674,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //    cv::imshow("integimg", integ);
 //    cv::imshow("tobe", tobe);
     }
-    float thresh = 0.80;
+    float thresh = 0.85;
     std::cout << "candidate_top size: " << candidates_top.size() << std::endl;
     vector<CandidateResult> candidates_out;
     matchMidLevel(srcPattern2,  template_integs[2], candidates_top, points_pos2, candidates_out, thresh);
@@ -642,11 +690,12 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //        cv::circle(colorImg, candidates_top[i], 1, cv::Scalar(0,0,255));
 //        if(abs(candidates_top[i].x - 32) < 3 && abs(candidates_top[i].y - 32) < 3) {
         CandidateResult candidate = candidates_out[i];
+        Mat tmp = colorImg2.clone();
         std::cout << "position: " << candidate.position << " degree: " << candidate.angel_idx << " score: " << candidate.score << std::endl;
 
-        cv::circle(colorImg2, cv::Point(candidate.position.x + NBLOCK * BLOCKW / 4, candidate.position.y + NBLOCK * BLOCKH / 4), 1, cv::Scalar(255,255,255));
-        cv::rectangle(colorImg2, candidate.position,  cv::Point(candidate.position.x + NBLOCK * BLOCKW/2, candidate.position.y + NBLOCK * BLOCKH/2),  cv::Scalar(255,255,255));
-        cv::imshow("colorImg", colorImg2);
+        cv::circle(tmp, cv::Point(candidate.position.x + NBLOCK * BLOCKW / 4, candidate.position.y + NBLOCK * BLOCKH / 4), 1, cv::Scalar(255,255,255));
+        cv::rectangle(tmp, candidate.position,  cv::Point(candidate.position.x + NBLOCK * BLOCKW/2, candidate.position.y + NBLOCK * BLOCKH/2),  cv::Scalar(255,255,255));
+        cv::imshow("colorImg", tmp);
         cv::waitKey(0);
 //        }
     }
