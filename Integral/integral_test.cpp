@@ -433,23 +433,27 @@ int matchMidLevel(const cv::Mat &src, const Mat *targets,\
                     int yy = y + m;
                     // dd, xx 和yy的合法性判断
                     if(dd >= 0 && dd < 360 && xx >= 0 && xx < src.cols && yy >= 0 && yy < src.rows) {
-//                        int setNum = 0;
-//                        setNum |= (dd << 20);
-//                        setNum |= (xx << 10);
-//                        setNum |= yy;
-                        // 从expand的中心，找到最高分的那个位置，来作为新的代表，这样保证out不会大于out
-//                        if(checkInSet(visited, xx, yy, dd, 1)) {
-//                            visited.insert(setNum);
-                        CandidateResult tmpCandidate;
-                        tmpCandidate.position = Point(xx, yy);
-                        tmpCandidate.angel_idx= dd;
+                        int setNum = 0;
+                        setNum |= (dd << 20);
+                        setNum |= (xx << 10);
+                        setNum |= yy;
+//                         从expand的中心，找到最高分的那个位置，来作为新的代表，这样保证out不会大于out
+//                  if(checkInSet(visited, xx, yy, dd, 1)) {
+//                  visited.insert(setNum);
+                        if(visited.find(setNum) == visited.end()) {
+                            visited.insert(setNum);
+                            CandidateResult tmpCandidate;
+                            tmpCandidate.position = Point(xx, yy);
+                            tmpCandidate.angel_idx= dd;
 
-                        float score = 0;
-                        if(compareSumPattern(src, targets[dd], tmpCandidate.position, thresh, points_pos[dd], score) && score > here_max.score) {
-                            here_max = tmpCandidate;
-                            here_max.score = score;
+                            float score = 0;
+                            if(compareSumPattern(src, targets[dd], tmpCandidate.position, thresh, points_pos[dd], score) && score > here_max.score) {
+                                here_max = tmpCandidate;
+                                here_max.score = score;
+                            }
                         }
-//                        }
+
+//                  }
                     }
                 }
             }
@@ -601,19 +605,19 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     pos.y = 1;
                 }
                 // 在这里旋转角度
-                for (int d = 0; (int)d < 360; d += 1) {
+                for (int d = 0; (int)d < 360; d += 4) {
                     auto &templatePattern4 = template_integs[1][d];
                     // 计算图片的pattern
                     float score = 0;
-                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65, points_pos4[d], score)) {
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.60, points_pos4[d], score)) {
                         ct_pass_filter_two++;
                         // 先在此做一次更精确一点点的去重，不做范围内搜索，但是能排除一些差异很大的
                         auto &templatePattern2 = template_integs[2][d];
                         Point tmpp(pos.x * 2, pos.y * 2);
                         float tmpscore = 0.0;
-                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.65, points_pos2[d], tmpscore)) {
+                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.75, points_pos2[d], tmpscore)) {
                             ct_pass_filter_three++;
-                            std::cout << pos << "tmpscore: " << tmpscore << "  score: " << score << "degree: " << d << std::endl;
+                            std::cout << pos << " tmpscore: " << tmpscore << "  score: " << score << " degree: " << d << std::endl;
                             CandidateResult candidateResult;
                             candidateResult.position = cv::Point(pos.x, pos.y);
                             candidateResult.angel_idx = d;
@@ -621,7 +625,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                             candidateResult.score = score;
                             candidates_top.push_back(candidateResult);
                             ct++;
-//                            std::cout << "[" << pos.x * 4 << ","  << pos.y * 4 << "]" <<  "degree: " << d << std::endl;
+//                        std::cout << "[" << pos.x * 4 << ","  << pos.y * 4 << "]" <<  "degree: " << d << std::endl;
 //                        cv::rectangle(colorImg, cv::Point(pos.x * 4, pos.y * 4),  cv::Point(pos.x * 4 + NBLOCK * BLOCKW, pos.y * 4+ NBLOCK * BLOCKH),  cv::Scalar(255,255,255));
 //                        cv::imshow("colorImg", colorImg);
 //                        cv::waitKey(0);
