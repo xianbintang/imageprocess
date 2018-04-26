@@ -245,6 +245,8 @@ void Dilation(const cv::Mat &src, cv::Mat &dilation_dst, int size )
     ///膨胀操作
     dilate( src, dilation_dst, element);
 }
+
+cv::Mat cannied;
 cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_rect, int do_dilate)
 {
     cv::Mat imgGB, imgCanny;
@@ -274,6 +276,9 @@ cv::Mat computeIntegral(const cv::Mat &image, const std::vector<cv::Point> &cur_
 
     if(do_dilate) {
         Dilation(imgCanny, imgCanny, 3);
+    }
+    if(imgCanny.cols > 300) {
+        cannied = imgCanny;
     }
 //    cv::imshow("canny", imgCanny);
 //    cv::waitKey(0);
@@ -488,7 +493,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 
 //        cv::imshow("s", srcPattern8);
 //        cv::imshow("t", templatePattern8);
-//        cv::waitKey(0);
+//        cv::waitKey(1);
     Point A, D;
     A = Point(0, 0);
     D=  Point(src.cols - 1, src.rows - 1);
@@ -505,7 +510,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     int ct = 0;
     Mat template_integs[3][360];
     long long template_points_num = 0;
-    int avg_height = 0;
+    int avg_height = 1;
     int avg_width = 0;
     vector<vector<cv::Point>> points_pos4(360, {cv::Point(0,0)});
     vector<vector<cv::Point>> points_pos2(360, {cv::Point(0,0)});
@@ -591,7 +596,8 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 D.y = integ.rows - 1;
             }
             int sum = getCurrentSum(integ_for_filter_one, A, D, 0);
-            if(sum > template_points_num * 0.85 && sum < template_points_num * 1.15) {
+            if(sum > template_points_num * 0.90 && sum < template_points_num * 1.10) {
+
                 ct_pass_filter_one++;
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
                 // FIXME 这里都没有进行扩展，而是直接只在目标位置上进行搜索，所以肯定会导致匹配的不准。。。
@@ -604,15 +610,21 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 if(pos.y < 0) {
                     pos.y = 1;
                 }
+
+//                cv::circle(colorImg, cv::Point(j, i), 1, cv::Scalar(255,255,255));
+
+
                 // 在这里旋转角度
+                TimeTracker tmptt;
+                tmptt.start();
                 for (int d = 0; (int)d < 360; d += 4) {
                     auto &templatePattern4 = template_integs[1][d];
+                    auto &templatePattern2 = template_integs[2][d];
                     // 计算图片的pattern
                     float score = 0;
                     if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.60, points_pos4[d], score)) {
                         ct_pass_filter_two++;
                         // 先在此做一次更精确一点点的去重，不做范围内搜索，但是能排除一些差异很大的
-                        auto &templatePattern2 = template_integs[2][d];
                         Point tmpp(pos.x * 2, pos.y * 2);
                         float tmpscore = 0.0;
                         if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.75, points_pos2[d], tmpscore)) {
@@ -633,7 +645,12 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     }
 
                 }
-
+                tmptt.stop();
+                std::cout << "tmptt duration angle match: " << tmptt.duration() << std::endl;
+//                cv::Mat tmpcannied = cannied.clone();
+//                cv::rectangle(tmpcannied, A,  D,  cv::Scalar(255,255,255));
+//                cv::imshow("colorImg1", tmpcannied);
+//                cv::waitKey(0);
             }
 
 //            std::cout << sum << " ";
@@ -643,11 +660,15 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 //    cv::imshow("integimg", integ);
 //    cv::imshow("tobe", tobe);
     }
+    TimeTracker tt2;
+    tt2.start();
     float thresh = 0.80;
     std::cout << "candidate_top size: " << candidates_top.size() << std::endl;
     vector<CandidateResult> candidates_out;
     matchMidLevel(srcPattern2,  template_integs[2], candidates_top, points_pos2, candidates_out, thresh);
+    tt2.stop();
     std::cout << "candidate_out size: " << candidates_out.size() << std::endl;
+    std::cout << "time matchMidLevel: " << tt2.duration() << std::endl;
     // 这一层出来的精度已经很高了，考虑从里面找出分数高的几个，再在下一层做更精确的匹配,
     // 但是分辨率低的时候还是会有部分重复的而且分相对较高的，除非把这里的阈值设高，但是设高了容易找不到
     // 分辨率低的时候还是会有问题，顶层得到的不一定是很正的，而且这些到了下层以后的匹配照样会匹配到很高的分
@@ -668,7 +689,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
         cv::waitKey(0);
 //        }
     }
-    std::cout << "duration: " << tt.duration() << std::endl;
+//    std::cout << "duration: " << tt.duration() << std::endl;
     std::cout << "total: " << candidates_out.size() << " time: " << totalTime << std::endl;
     std::cout << "pass filter one: " << ct_pass_filter_one << std::endl;
     std::cout << "pass filter two: " << ct_pass_filter_two << std::endl;
