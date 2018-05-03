@@ -64,6 +64,18 @@ void saveMatf(const cv::Mat mat, const char *path) {
     }
     fclose(fp);
 }
+void saveMatS32(const cv::Mat mat, const char *path) {
+    FILE *fp = fopen(path, "w");
+    int i,j;
+    for (i = 0; i < mat.rows; ++i) {
+        for (j = 0; j < mat.cols; ++j) {
+//            fprintf(fp, "%d ", (mat.ptr + i * mat.step)[j]);
+            fprintf(fp, "%d ", mat.at<int>(i, j));
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
 static cv::Mat get_y_from_yuv(const UINT8 *yuv, const UINT16 width, const UINT16 height)
 {
     cv::Mat gray;
@@ -568,12 +580,14 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 }
             }
         }
+//        std::cout << "points_num4: " << points_pos4[i].size() << " points_num2: " << points_pos2[i].size() << std::endl;
     }
     template_points_num /= 360;
     std::cout << avg_height / 360 << "  " << avg_width / 360 << std::endl;
 
     std::cout << " sum: " << template_points_num << std::endl;
 
+    saveMatS32(srcPattern4, "data//srcPattern4_pc.txt");
     int ct_pass_filter_one = 0;
     int ct_pass_filter_two = 0;
     int ct_pass_filter_three = 0;
@@ -596,7 +610,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                 D.y = integ.rows - 1;
             }
             int sum = getCurrentSum(integ_for_filter_one, A, D, 0);
-            if(sum > template_points_num * 0.90 && sum < template_points_num * 1.10) {
+            if(sum > template_points_num * 0.85 && sum < template_points_num * 1.15) {
 
                 ct_pass_filter_one++;
                 // FIXME 这里要修改，不是从右上角进行扩散匹配，而是从中心位置进行扩散匹配。
@@ -622,12 +636,13 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
                     auto &templatePattern2 = template_integs[2][d];
                     // 计算图片的pattern
                     float score = 0;
-                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.60, points_pos4[d], score)) {
+                    if(compareSumPattern(srcPattern4, templatePattern4, pos, 0.65, points_pos4[d], score)) {
+                        std::cout << "pos.x: " << pos.x << " pos.y: " << pos.y << " degree: " << d << std::endl;
                         ct_pass_filter_two++;
                         // 先在此做一次更精确一点点的去重，不做范围内搜索，但是能排除一些差异很大的
                         Point tmpp(pos.x * 2, pos.y * 2);
                         float tmpscore = 0.0;
-                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.75, points_pos2[d], tmpscore)) {
+                        if(compareSumPattern(srcPattern2, templatePattern2, tmpp, 0.70, points_pos2[d], tmpscore)) {
                             ct_pass_filter_three++;
                             std::cout << pos << " tmpscore: " << tmpscore << "  score: " << score << " degree: " << d << std::endl;
                             CandidateResult candidateResult;
@@ -646,7 +661,7 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
 
                 }
                 tmptt.stop();
-                std::cout << "tmptt duration angle match: " << tmptt.duration() << std::endl;
+//                std::cout << "tmptt duration angle match: " << tmptt.duration() << std::endl;
 //                cv::Mat tmpcannied = cannied.clone();
 //                cv::rectangle(tmpcannied, A,  D,  cv::Scalar(255,255,255));
 //                cv::imshow("colorImg1", tmpcannied);
@@ -665,6 +680,10 @@ int findTargetArea(cv::Mat &src, cv::Mat &target)
     float thresh = 0.80;
     std::cout << "candidate_top size: " << candidates_top.size() << std::endl;
     vector<CandidateResult> candidates_out;
+    for (int i = 0; i < candidates_top.size(); ++i) {
+        CandidateResult candidate = candidates_top[i];
+        std::cout << "position: " << candidate.position << " degree: " << candidate.angel_idx << " score: " << candidate.score << std::endl;
+    }
     matchMidLevel(srcPattern2,  template_integs[2], candidates_top, points_pos2, candidates_out, thresh);
     tt2.stop();
     std::cout << "candidate_out size: " << candidates_out.size() << std::endl;

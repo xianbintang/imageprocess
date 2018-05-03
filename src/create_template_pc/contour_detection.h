@@ -13,7 +13,7 @@
 #include <memory>
 
 const int MAX_NUM_PYRAMID = 4;
-const int MIN_NUM_PYRAMID = 3;
+const int MIN_NUM_PYRAMID = 4;
 const int MAX_DEGREE = 360;
 using UINT16 = unsigned short;
 using INT8 = signed char;
@@ -23,6 +23,7 @@ const int MIN_CONTOUR_PYRA = 200;
 const int WIDTH = 640;
 const int HEIGHT = 480;
 const int MIN_DIST = 2;
+const int MIN_ANGLE_STEP = 2;
 
 
 //const int MIN_DIST = 2;
